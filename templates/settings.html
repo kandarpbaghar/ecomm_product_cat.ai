@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - AI Ecommerce{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>General Settings</h2>
+            </div>
+
+            <!-- Company Logo Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Company Logo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Current Logo</label>
+                                <div class="border rounded p-3 text-center" style="min-height: 120px; background: #f8f9fa;">
+                                    <img id="current-logo" src="/static/images/placeholder.svg" alt="Company Logo" 
+                                         style="max-height: 100px; max-width: 100%; object-fit: contain;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="logo-file" class="form-label">Upload New Logo</label>
+                                <input type="file" class="form-control" id="logo-file" accept="image/*">
+                                <div class="form-text">
+                                    Recommended: PNG, JPG, or SVG format. Maximum size: 5MB.
+                                    <br>Best dimensions: 200x80px for optimal display.
+                                </div>
+                            </div>
+                            
+                            <!-- Logo Preview -->
+                            <div id="logo-preview" class="mb-3" style="display: none;">
+                                <label class="form-label">Preview</label>
+                                <div class="border rounded p-3 text-center" style="min-height: 120px; background: #f8f9fa;">
+                                    <img id="preview-logo" src="" alt="Logo Preview" 
+                                         style="max-height: 100px; max-width: 100%; object-fit: contain;">
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-primary" id="save-logo-btn" onclick="saveCompanyLogo()" disabled>
+                                    <i class="bi bi-check-lg"></i> Save Logo
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="remove-logo-btn" onclick="removeCompanyLogo()">
+                                    <i class="bi bi-trash"></i> Remove Logo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Settings Sections can be added here -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Application Settings</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Additional settings will be available here in future updates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedLogoFile = null;
+
+// Initialize settings page
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurrentLogo();
+    setupLogoUpload();
+});
+
+function setupLogoUpload() {
+    const fileInput = document.getElementById('logo-file');
+    fileInput.addEventListener('change', handleLogoFileSelect);
+}
+
+function handleLogoFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.type.startsWith('image/')) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showToast('Logo file is too large. Please select an image under 5MB.', 'error');
+                return;
+            }
+            
+            selectedLogoFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview-logo').src = e.target.result;
+                document.getElementById('logo-preview').style.display = 'block';
+                document.getElementById('save-logo-btn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            showToast('Please select a valid image file (PNG, JPG, SVG)', 'error');
+        }
+    }
+}
+
+async function loadCurrentLogo() {
+    try {
+        const response = await fetch('/api/settings/logo');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.logo_url) {
+                document.getElementById('current-logo').src = data.logo_url;
+            }
+        }
+    } catch (error) {
+        console.log('No company logo set yet');
+    }
+}
+
+async function saveCompanyLogo() {
+    if (!selectedLogoFile) {
+        showToast('Please select a logo file first', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('logo', selectedLogoFile);
+    
+    try {
+        const response = await fetch('/api/settings/logo', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            showToast('Company logo saved successfully!', 'success');
+            
+            // Update current logo display
+            document.getElementById('current-logo').src = data.logo_url;
+            
+            // Reset form
+            document.getElementById('logo-file').value = '';
+            document.getElementById('logo-preview').style.display = 'none';
+            document.getElementById('save-logo-btn').disabled = true;
+            selectedLogoFile = null;
+        } else {
+            throw new Error('Failed to save logo');
+        }
+    } catch (error) {
+        console.error('Error saving logo:', error);
+        showToast('Failed to save company logo', 'error');
+    }
+}
+
+async function removeCompanyLogo() {
+    if (!confirm('Are you sure you want to remove the company logo?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/settings/logo', {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showToast('Company logo removed successfully!', 'success');
+            
+            // Reset to placeholder
+            document.getElementById('current-logo').src = '/static/images/placeholder.svg';
+            
+            // Reset form
+            document.getElementById('logo-file').value = '';
+            document.getElementById('logo-preview').style.display = 'none';
+            document.getElementById('save-logo-btn').disabled = true;
+            selectedLogoFile = null;
+        } else {
+            throw new Error('Failed to remove logo');
+        }
+    } catch (error) {
+        console.error('Error removing logo:', error);
+        showToast('Failed to remove company logo', 'error');
+    }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

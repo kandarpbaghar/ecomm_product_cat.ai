@@ -1,0 +1,1117 @@
+{% extends "base.html" %}
+
+{% block title %}Product Details - AI Ecommerce{% endblock %}
+
+{% block content %}
+<!-- Add Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+    body {
+        background-color: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .product-detail-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #007bff;
+        text-decoration: none;
+        margin-bottom: 20px;
+        font-size: 14px;
+        transition: color 0.3s;
+    }
+
+    .back-link:hover {
+        color: #0056b3;
+        text-decoration: none;
+    }
+
+    .product-detail-container {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 400px;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .error-container {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .error-container i {
+        font-size: 64px;
+        color: #dc3545;
+        margin-bottom: 20px;
+    }
+
+    .error-container h3 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .error-container p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .product-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        padding: 40px;
+    }
+
+    /* Image Gallery */
+    .image-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .main-image {
+        width: 100%;
+        height: 500px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #e5e5e5;
+    }
+
+    .main-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .thumbnail-list {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.3s;
+    }
+
+    .thumbnail.active {
+        border-color: #007bff;
+    }
+
+    .thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Product Info */
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .product-header {
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 20px;
+    }
+
+    .product-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+
+    .product-vendor {
+        font-size: 16px;
+        color: #007bff;
+        font-weight: 500;
+    }
+
+    .product-pricing {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .current-price {
+        font-size: 32px;
+        font-weight: 700;
+        color: #28a745;
+    }
+
+    .original-price {
+        font-size: 24px;
+        color: #999;
+        text-decoration: line-through;
+    }
+
+    .discount-badge {
+        background: #dc3545;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .product-description {
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 20px;
+    }
+
+    .product-description h4 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #333;
+    }
+
+    .product-description p {
+        color: #666;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .product-options {
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 20px;
+    }
+
+    .product-options h4 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .option-group {
+        margin-bottom: 20px;
+    }
+
+    .option-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .option-label {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .option-values {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .option-value {
+        padding: 8px 16px;
+        border: 2px solid #e5e5e5;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .option-value:hover {
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .option-value.selected {
+        border-color: #007bff;
+        background: #007bff;
+        color: white;
+    }
+
+    .product-variants {
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 20px;
+    }
+
+    .product-variants h4 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .variant-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .variant-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        background: #f8f9fa;
+    }
+
+    .variant-title {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .variant-price {
+        font-weight: 600;
+        color: #007bff;
+    }
+
+    .variant-stock {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .product-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .quantity-selector label {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin: 0;
+    }
+
+    .quantity-input {
+        display: flex;
+        align-items: center;
+        border: 2px solid #e5e5e5;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .quantity-btn {
+        width: 40px;
+        height: 40px;
+        background: #f8f9fa;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s;
+    }
+
+    .quantity-btn:hover {
+        background: #e9ecef;
+    }
+
+    .quantity-field {
+        width: 60px;
+        height: 40px;
+        border: none;
+        text-align: center;
+        font-weight: 500;
+        font-size: 16px;
+    }
+
+    .quantity-field:focus {
+        outline: none;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .add-to-cart-btn {
+        flex: 1;
+        padding: 16px 24px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .add-to-cart-btn:hover {
+        background: #218838;
+    }
+
+    .add-to-cart-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .wishlist-btn {
+        width: 56px;
+        height: 56px;
+        background: white;
+        border: 2px solid #e5e5e5;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        font-size: 20px;
+        color: #666;
+    }
+
+    .wishlist-btn:hover {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+    .product-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .meta-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+    }
+
+    .meta-label {
+        color: #666;
+    }
+
+    .meta-value {
+        color: #333;
+        font-weight: 500;
+    }
+
+    .stock-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .stock-indicator.in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .stock-indicator.out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .stock-indicator.low-stock {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    /* Cart Styles */
+    .cart-item {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .cart-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .cart-item-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        background: #f5f5f5;
+    }
+
+    .cart-item-details {
+        flex: 1;
+    }
+
+    .cart-item-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .cart-item-price {
+        font-size: 14px;
+        color: #007bff;
+        font-weight: 600;
+    }
+
+    .cart-item-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cart-item-delete {
+        width: 28px;
+        height: 28px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 12px;
+        margin-left: 4px;
+    }
+
+    .cart-item-delete:hover {
+        background: #c82333;
+    }
+
+    .quantity-btn {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .quantity-btn:hover {
+        background: #f5f5f5;
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .quantity-display {
+        min-width: 30px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .cart-total-label {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .cart-total-amount {
+        font-size: 20px;
+        font-weight: 600;
+        color: #007bff;
+    }
+
+    .cart-dropdown.show {
+        display: block !important;
+    }
+
+    /* Cart Notification */
+    .cart-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-weight: 500;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s;
+        z-index: 1100;
+    }
+
+    .cart-notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .product-layout {
+            grid-template-columns: 1fr;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        .main-image {
+            height: 400px;
+        }
+
+        .product-title {
+            font-size: 24px;
+        }
+
+        .current-price {
+            font-size: 28px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .wishlist-btn {
+            width: 100%;
+            height: 48px;
+        }
+    }
+</style>
+
+<div class="product-detail-wrapper">
+    <!-- Header with Cart -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <!-- Back Navigation -->
+        <a href="/catalog/customer" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Catalog</span>
+        </a>
+        
+        <!-- Cart Icon -->
+        <div class="cart-container" style="position: relative;">
+            <button class="cart-btn" onclick="toggleCart()" style="background: white; border: 2px solid #e5e5e5; border-radius: 8px; padding: 10px 16px; cursor: pointer; position: relative; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Cart</span>
+                <div class="cart-badge" id="cart-badge" style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 20px; height: 20px; display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">
+                    <span id="cart-count">0</span>
+                </div>
+            </button>
+            
+            <!-- Cart Dropdown -->
+            <div class="cart-dropdown" id="cart-dropdown" style="position: absolute; top: calc(100% + 10px); right: 0; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 350px; max-height: 500px; display: none; z-index: 1000; overflow: hidden;">
+                <div class="cart-header" style="padding: 16px 20px; border-bottom: 1px solid #e5e5e5; background: #f8f9fa;">
+                    <h5 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">Shopping Cart</h5>
+                </div>
+                <div class="cart-body" style="max-height: 350px; overflow-y: auto;">
+                    <div id="cart-items" class="cart-items" style="padding: 16px;"></div>
+                    <div id="empty-cart" class="empty-cart" style="padding: 60px 20px; text-align: center; color: #999;">
+                        <i class="fas fa-shopping-cart" style="font-size: 48px; margin-bottom: 12px; color: #ddd;"></i>
+                        <p style="margin: 0; font-size: 14px;">Your cart is empty</p>
+                    </div>
+                </div>
+                <div class="cart-footer" id="cart-total" style="padding: 16px 20px; border-top: 1px solid #e5e5e5; background: #f8f9fa; display: none; justify-content: space-between; align-items: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Detail Container -->
+    <div class="product-detail-container">
+        <!-- Loading State -->
+        <div class="loading-container" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading product details...</p>
+        </div>
+
+        <!-- Error State -->
+        <div class="error-container" id="error" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Product Not Found</h3>
+            <p>The product you're looking for doesn't exist or has been removed.</p>
+            <a href="/catalog" class="btn btn-primary">Return to Catalog</a>
+        </div>
+
+        <!-- Product Content -->
+        <div class="product-layout" id="product-content" style="display: none;">
+            <!-- Image Gallery -->
+            <div class="image-gallery">
+                <div class="main-image">
+                    <img id="main-product-image" src="/static/images/placeholder.svg" alt="Product Image">
+                </div>
+                <div class="thumbnail-list" id="thumbnail-list">
+                    <!-- Thumbnails will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Product Information -->
+            <div class="product-info">
+                <!-- Product Header -->
+                <div class="product-header">
+                    <h1 class="product-title" id="product-title">Product Title</h1>
+                    <div class="product-vendor" id="product-vendor">Brand Name</div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="product-pricing">
+                    <span class="current-price" id="current-price">$0.00</span>
+                    <span class="original-price" id="original-price" style="display: none;">$0.00</span>
+                    <span class="discount-badge" id="discount-badge" style="display: none;">Save %</span>
+                </div>
+
+                <!-- Stock Status -->
+                <div class="stock-indicator" id="stock-status">
+                    <i class="fas fa-check-circle"></i>
+                    <span>In Stock</span>
+                </div>
+
+                <!-- Description -->
+                <div class="product-description">
+                    <h4>Description</h4>
+                    <p id="product-description">Product description will be loaded here...</p>
+                </div>
+
+                <!-- Product Options -->
+                <div class="product-options" id="product-options" style="display: none;">
+                    <h4>Options</h4>
+                    <div id="options-container">
+                        <!-- Options will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Product Variants -->
+                <div class="product-variants" id="product-variants" style="display: none;">
+                    <h4>Available Variants</h4>
+                    <div class="variant-list" id="variant-list">
+                        <!-- Variants will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <label for="quantity">Quantity:</label>
+                        <div class="quantity-input">
+                            <button class="quantity-btn" onclick="changeQuantity(-1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="quantity" class="quantity-field" value="1" min="1" onchange="validateQuantity()">
+                            <button class="quantity-btn" onclick="changeQuantity(1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="add-to-cart-btn" onclick="addToCart()">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Add to Cart</span>
+                        </button>
+                        <button class="wishlist-btn" onclick="toggleWishlist()">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Meta -->
+                <div class="product-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">SKU:</span>
+                        <span class="meta-value" id="product-sku">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Category:</span>
+                        <span class="meta-value" id="product-category">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Tags:</span>
+                        <span class="meta-value" id="product-tags">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Get product ID from the template
+const productId = {{ product_id }};
+let currentProduct = null;
+
+// Load product details on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadProductDetails();
+});
+
+async function loadProductDetails() {
+    try {
+        const response = await fetch(`/api/products/${productId}`);
+        
+        if (!response.ok) {
+            throw new Error('Product not found');
+        }
+        
+        const product = await response.json();
+        currentProduct = product;
+        
+        displayProduct(product);
+        
+    } catch (error) {
+        console.error('Error loading product:', error);
+        showError();
+    }
+}
+
+function displayProduct(product) {
+    // Hide loading, show content
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('product-content').style.display = 'grid';
+    
+    // Update basic info
+    document.getElementById('product-title').textContent = product.title;
+    document.getElementById('product-vendor').textContent = product.vendor || 'Unknown Brand';
+    document.getElementById('current-price').textContent = `$${product.price || '0.00'}`;
+    
+    // Handle compare price
+    if (product.compare_at_price && product.compare_at_price > product.price) {
+        document.getElementById('original-price').textContent = `$${product.compare_at_price}`;
+        document.getElementById('original-price').style.display = 'inline';
+        
+        const discount = Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100);
+        document.getElementById('discount-badge').textContent = `Save ${discount}%`;
+        document.getElementById('discount-badge').style.display = 'inline';
+    }
+    
+    // Update description
+    const description = product.description || product.body_html || 'No description available.';
+    document.getElementById('product-description').innerHTML = description;
+    
+    // Update images
+    displayImages(product.images || []);
+    
+    // Update stock status
+    updateStockStatus(product.quantity || 0);
+    
+    // Update options
+    if (product.options && product.options.length > 0) {
+        displayOptions(product.options);
+    }
+    
+    // Update variants
+    if (product.variants && product.variants.length > 0) {
+        displayVariants(product.variants);
+    }
+    
+    // Update meta information
+    document.getElementById('product-sku').textContent = product.sku_code || 'N/A';
+    document.getElementById('product-category').textContent = 
+        product.categories?.map(cat => cat.name).join(', ') || 'Uncategorized';
+    document.getElementById('product-tags').textContent = 
+        Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || 'None');
+}
+
+function displayImages(images) {
+    const mainImage = document.getElementById('main-product-image');
+    const thumbnailList = document.getElementById('thumbnail-list');
+    
+    if (images.length === 0) {
+        mainImage.src = '/static/images/placeholder.svg';
+        return;
+    }
+    
+    // Set main image
+    mainImage.src = images[0].url;
+    mainImage.alt = images[0].alt_text || 'Product Image';
+    
+    // Clear thumbnails
+    thumbnailList.innerHTML = '';
+    
+    // Add thumbnails if there are multiple images
+    if (images.length > 1) {
+        images.forEach((image, index) => {
+            const thumbnail = document.createElement('div');
+            thumbnail.className = `thumbnail ${index === 0 ? 'active' : ''}`;
+            thumbnail.innerHTML = `<img src="${image.url}" alt="${image.alt_text || 'Product Image'}">`;
+            thumbnail.onclick = () => selectImage(index, image.url);
+            thumbnailList.appendChild(thumbnail);
+        });
+    }
+}
+
+function selectImage(index, imageUrl) {
+    // Update main image
+    document.getElementById('main-product-image').src = imageUrl;
+    
+    // Update active thumbnail
+    document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+        thumb.classList.toggle('active', i === index);
+    });
+}
+
+function updateStockStatus(quantity) {
+    const stockStatus = document.getElementById('stock-status');
+    const addToCartBtn = document.querySelector('.add-to-cart-btn');
+    
+    if (quantity > 10) {
+        stockStatus.className = 'stock-indicator in-stock';
+        stockStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>In Stock</span>';
+        addToCartBtn.disabled = false;
+    } else if (quantity > 0) {
+        stockStatus.className = 'stock-indicator low-stock';
+        stockStatus.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Low Stock (${quantity} left)</span>`;
+        addToCartBtn.disabled = false;
+    } else {
+        stockStatus.className = 'stock-indicator out-of-stock';
+        stockStatus.innerHTML = '<i class="fas fa-times-circle"></i><span>Out of Stock</span>';
+        addToCartBtn.disabled = true;
+    }
+}
+
+function displayOptions(options) {
+    const optionsContainer = document.getElementById('options-container');
+    const optionsSection = document.getElementById('product-options');
+    
+    optionsContainer.innerHTML = '';
+    
+    options.forEach(option => {
+        const optionGroup = document.createElement('div');
+        optionGroup.className = 'option-group';
+        
+        const label = document.createElement('label');
+        label.className = 'option-label';
+        label.textContent = option.name;
+        
+        const valuesContainer = document.createElement('div');
+        valuesContainer.className = 'option-values';
+        
+        option.values.forEach((value, index) => {
+            const valueBtn = document.createElement('button');
+            valueBtn.className = `option-value ${index === 0 ? 'selected' : ''}`;
+            valueBtn.textContent = value;
+            valueBtn.onclick = () => selectOptionValue(option.name, value, valueBtn);
+            valuesContainer.appendChild(valueBtn);
+        });
+        
+        optionGroup.appendChild(label);
+        optionGroup.appendChild(valuesContainer);
+        optionsContainer.appendChild(optionGroup);
+    });
+    
+    optionsSection.style.display = 'block';
+}
+
+function selectOptionValue(optionName, value, button) {
+    // Remove selected class from siblings
+    button.parentElement.querySelectorAll('.option-value').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked button
+    button.classList.add('selected');
+}
+
+function displayVariants(variants) {
+    const variantList = document.getElementById('variant-list');
+    const variantsSection = document.getElementById('product-variants');
+    
+    variantList.innerHTML = '';
+    
+    variants.forEach(variant => {
+        const variantItem = document.createElement('div');
+        variantItem.className = 'variant-item';
+        
+        variantItem.innerHTML = `
+            <div>
+                <div class="variant-title">${variant.title}</div>
+                <div class="variant-stock">Stock: ${variant.inventory_quantity || 0}</div>
+            </div>
+            <div class="variant-price">$${variant.price || '0.00'}</div>
+        `;
+        
+        variantList.appendChild(variantItem);
+    });
+    
+    variantsSection.style.display = 'block';
+}
+
+function changeQuantity(delta) {
+    const quantityField = document.getElementById('quantity');
+    const currentValue = parseInt(quantityField.value) || 1;
+    const newValue = Math.max(1, currentValue + delta);
+    quantityField.value = newValue;
+}
+
+function validateQuantity() {
+    const quantityField = document.getElementById('quantity');
+    const value = parseInt(quantityField.value) || 1;
+    quantityField.value = Math.max(1, value);
+}
+
+// addToCart function is defined later with cart functionality
+
+function toggleWishlist() {
+    const wishlistBtn = document.querySelector('.wishlist-btn i');
+    
+    if (wishlistBtn.classList.contains('far')) {
+        wishlistBtn.classList.remove('far');
+        wishlistBtn.classList.add('fas');
+        alert('Added to wishlist!');
+    } else {
+        wishlistBtn.classList.remove('fas');
+        wishlistBtn.classList.add('far');
+        alert('Removed from wishlist!');
+    }
+}
+
+function showError() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+}
+
+// Check if product is in cart on page load
+function checkCartStatus() {
+    if (typeof cartManager !== 'undefined' && currentProduct) {
+        const cartItem = cartManager.getCartItem(productId);
+        updateCartButton(cartItem !== null);
+    }
+}
+
+// Update the add to cart button based on cart status
+function updateCartButton(isInCart) {
+    const actionButtons = document.querySelector('.action-buttons');
+    const quantitySelector = document.querySelector('.quantity-selector');
+    
+    if (isInCart) {
+        // Hide quantity selector when item is in cart
+        quantitySelector.style.display = 'none';
+        
+        // Replace with remove from cart button
+        actionButtons.innerHTML = `
+            <button class="add-to-cart-btn" style="background: #dc3545;" onclick="removeFromCart()">
+                <i class="fas fa-trash"></i>
+                <span>Remove from Cart</span>
+            </button>
+            <button class="wishlist-btn" onclick="toggleWishlist()">
+                <i class="far fa-heart"></i>
+            </button>
+        `;
+    } else {
+        // Show quantity selector
+        quantitySelector.style.display = 'flex';
+        
+        // Show add to cart button
+        actionButtons.innerHTML = `
+            <button class="add-to-cart-btn" onclick="addToCart()">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Add to Cart</span>
+            </button>
+            <button class="wishlist-btn" onclick="toggleWishlist()">
+                <i class="far fa-heart"></i>
+            </button>
+        `;
+    }
+}
+
+// Override addToCart function
+function addToCart() {
+    if (currentProduct && typeof cartManager !== 'undefined') {
+        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+        const productData = {
+            id: productId,
+            title: currentProduct.title,
+            price: currentProduct.price,
+            vendor: currentProduct.vendor || 'Unknown',
+            image: currentProduct.images && currentProduct.images.length > 0 
+                ? currentProduct.images[0].url 
+                : '/static/images/placeholder.svg'
+        };
+        
+        // Add to cart multiple times based on quantity
+        for (let i = 0; i < quantity; i++) {
+            cartManager.addToCart(productId, productData);
+        }
+        
+        updateCartButton(true);
+        updateCartUI();
+    }
+}
+
+// Remove from cart function
+function removeFromCart() {
+    if (typeof cartManager !== 'undefined') {
+        cartManager.removeFromCart(productId);
+        updateCartButton(false);
+        updateCartUI();
+    }
+}
+
+// Listen for cart changes
+if (typeof cartManager !== 'undefined') {
+    cartManager.addListener(() => {
+        checkCartStatus();
+    });
+}
+
+// Update displayProduct to check cart status
+const originalDisplayProduct = displayProduct;
+displayProduct = function(product) {
+    originalDisplayProduct(product);
+    checkCartStatus();
+};
+</script>
+
+<!-- Include cart.js -->
+<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
+{% endblock %}

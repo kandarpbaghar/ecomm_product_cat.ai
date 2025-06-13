@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Shopify Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-4">
+                <i class="bi bi-shop"></i> Shopify Configuration
+            </h1>
+            
+            <!-- Connection Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wifi"></i> Connection Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="connectionStatus" class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Checking...</span>
+                        </div>
+                        <span>Checking connection...</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary" onclick="testConnection()">
+                            <i class="bi bi-arrow-clockwise"></i> Test Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Shopify Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="shopifyConfigForm" onsubmit="saveConfiguration(event)">
+                        <div class="mb-4">
+                            <label for="storeUrl" class="form-label">
+                                <strong>Store URL</strong>
+                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                   title="Your Shopify store URL (e.g., mystore.myshopify.com)"></i>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">https://</span>
+                                <input type="text" class="form-control" id="storeUrl" 
+                                       placeholder="mystore.myshopify.com" required>
+                                <div id="storeUrlStatus" class="input-group-text">
+                                    <i class="bi bi-question-circle text-muted"></i>
+                                </div>
+                            </div>
+                            <div class="form-text">
+                                Enter your Shopify store domain (without https://)
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="accessToken" class="form-label">
+                                <strong>Access Token</strong>
+                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                   title="Private app access token from your Shopify admin"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="accessToken" 
+                                       placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxx" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('accessToken')">
+                                    <i class="bi bi-eye" id="accessTokenEye"></i>
+                                </button>
+                                <div id="accessTokenStatus" class="input-group-text">
+                                    <i class="bi bi-question-circle text-muted"></i>
+                                </div>
+                            </div>
+                            <div class="form-text">
+                                Your Shopify private app access token (starts with "shpat_")
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="apiVersion" class="form-label">
+                                <strong>API Version</strong>
+                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                   title="Shopify API version to use"></i>
+                            </label>
+                            <select class="form-control" id="apiVersion" required>
+                                <option value="2024-01">2024-01 (Recommended)</option>
+                                <option value="2023-10">2023-10</option>
+                                <option value="2023-07">2023-07</option>
+                                <option value="2023-04">2023-04</option>
+                            </select>
+                            <div class="form-text">
+                                Select the Shopify API version to use
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadConfiguration()">
+                                <i class="bi bi-arrow-clockwise"></i> Reload
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> How to Get Shopify Credentials
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>1. Create a Private App</h6>
+                            <ol class="small">
+                                <li>Go to your Shopify Admin → Settings → Apps and sales channels</li>
+                                <li>Click "Develop apps" → "Create an app"</li>
+                                <li>Give your app a name (e.g., "AI Product Search")</li>
+                                <li>Click "Create app"</li>
+                            </ol>
+                            
+                            <h6>2. Configure API Permissions</h6>
+                            <ul class="small">
+                                <li><strong>Products:</strong> Read access</li>
+                                <li><strong>Collections:</strong> Read access</li>
+                                <li><strong>Inventory:</strong> Read access</li>
+                                <li><strong>Product listings:</strong> Read access</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>3. Get Access Token</h6>
+                            <ol class="small">
+                                <li>Click "Install app" in your private app</li>
+                                <li>Copy the "Admin API access token"</li>
+                                <li>Paste it in the "Access Token" field above</li>
+                            </ol>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h6><i class="bi bi-shield-check"></i> Security Note</h6>
+                                <p class="small mb-0">
+                                    Store credentials in environment variables for production use. 
+                                    Never commit access tokens to version control.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Environment Variables Info -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-server"></i> Environment Variables
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>For production deployment, set these environment variables:</p>
+                    <pre class="bg-light p-3 rounded"><code>SHOPIFY_STORE_URL=your-store.myshopify.com
+SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxxxxxx
+SHOPIFY_API_VERSION=2024-01</code></pre>
+                    <div class="alert alert-warning mt-3">
+                        <strong>Note:</strong> Environment variables take precedence over settings saved through this interface.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configuration management
+let configData = {};
+
+// Load configuration on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    loadConfiguration();
+});
+
+// Load current configuration
+async function loadConfiguration() {
+    try {
+        const response = await fetch('/api/shopify/config');
+        const data = await response.json();
+        
+        configData = data;
+        
+        // Update form fields
+        document.getElementById('storeUrl').value = data.store_url || '';
+        document.getElementById('accessToken').value = data.access_token || '';
+        document.getElementById('apiVersion').value = data.api_version || '2024-01';
+        
+        // Update status indicators
+        updateFieldStatus('storeUrl', data.store_url_source);
+        updateFieldStatus('accessToken', data.access_token_source);
+        
+        // Update source information if elements exist
+        if (document.getElementById('storeUrlSource')) {
+            document.getElementById('storeUrlSource').textContent = getSourceText(data.store_url_source);
+        }
+        if (document.getElementById('accessTokenSource')) {
+            document.getElementById('accessTokenSource').textContent = getSourceText(data.access_token_source);
+        }
+        
+        // Check connection status
+        checkConnectionStatus();
+        
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+        showToast('Failed to load configuration', 'error');
+    }
+}
+
+// Update field status indicators
+function updateFieldStatus(fieldId, source) {
+    const statusElement = document.getElementById(fieldId + 'Status');
+    const inputElement = document.getElementById(fieldId);
+    
+    if (source === 'environment') {
+        statusElement.innerHTML = '<i class="bi bi-shield-check text-success" title="Set in environment"></i>';
+        inputElement.disabled = true;
+        inputElement.placeholder = 'Set in environment variables';
+    } else if (source === 'database') {
+        statusElement.innerHTML = '<i class="bi bi-database text-info" title="Saved in database"></i>';
+        inputElement.disabled = false;
+    } else {
+        statusElement.innerHTML = '<i class="bi bi-exclamation-triangle text-warning" title="Not configured"></i>';
+        inputElement.disabled = false;
+    }
+}
+
+// Save configuration
+async function saveConfiguration(event) {
+    event.preventDefault();
+    
+    const formData = {
+        store_url: document.getElementById('storeUrl').value.trim(),
+        access_token: document.getElementById('accessToken').value.trim(),
+        api_version: document.getElementById('apiVersion').value
+    };
+    
+    // Validate form
+    if (!formData.store_url || !formData.access_token) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    // Validate store URL format
+    if (!formData.store_url.endsWith('.myshopify.com')) {
+        showToast('Store URL should end with .myshopify.com', 'error');
+        return;
+    }
+    
+    // Validate access token format
+    if (!formData.access_token.startsWith('shpat_')) {
+        showToast('Access token should start with "shpat_"', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/shopify/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Configuration saved successfully', 'success');
+            loadConfiguration(); // Reload to update status
+        } else {
+            showToast(result.error || 'Failed to save configuration', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showToast('Failed to save configuration', 'error');
+    }
+}
+
+// Test connection
+async function testConnection() {
+    const statusElement = document.getElementById('connectionStatus');
+    statusElement.innerHTML = `
+        <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Testing...</span>
+        </div>
+        <span>Testing connection...</span>
+    `;
+    
+    try {
+        const response = await fetch('/api/shopify/test', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.connected) {
+            statusElement.innerHTML = `
+                <i class="bi bi-check-circle text-success me-2"></i>
+                <span class="text-success">Connected to ${result.shop_name || 'Shopify'}</span>
+            `;
+            showToast('Successfully connected to Shopify!', 'success');
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Connection failed: ${result.error || 'Unknown error'}</span>
+            `;
+            showToast(`Connection failed: ${result.error || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        statusElement.innerHTML = `
+            <i class="bi bi-x-circle text-danger me-2"></i>
+            <span class="text-danger">Connection test failed</span>
+        `;
+        showToast('Connection test failed', 'error');
+    }
+}
+
+// Check connection status on load
+async function checkConnectionStatus() {
+    try {
+        const response = await fetch('/api/shopify/status');
+        const result = await response.json();
+        
+        const statusElement = document.getElementById('connectionStatus');
+        
+        if (result.configured) {
+            if (result.connected) {
+                statusElement.innerHTML = `
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <span class="text-success">Connected and ready</span>
+                `;
+            } else {
+                statusElement.innerHTML = `
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    <span class="text-warning">Configured but not connected</span>
+                `;
+            }
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Not configured</span>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error checking status:', error);
+        const statusElement = document.getElementById('connectionStatus');
+        statusElement.innerHTML = `
+            <i class="bi bi-question-circle text-muted me-2"></i>
+            <span class="text-muted">Status unknown</span>
+        `;
+    }
+}
+
+// Toggle password visibility
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const eye = document.getElementById(fieldId + 'Eye');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        eye.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        eye.className = 'bi bi-eye';
+    }
+}
+
+// Get source text for display
+function getSourceText(source) {
+    switch(source) {
+        case 'environment':
+            return 'Environment Variables';
+        case 'database':
+            return 'Database (via web interface)';
+        case 'none':
+            return 'Not configured';
+        default:
+            return 'Unknown';
+    }
+}
+</script>
+{% endblock %}

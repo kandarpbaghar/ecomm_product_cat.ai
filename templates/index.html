@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}AI E-commerce Product Search - Home{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh;">
+    <!-- Left Navigation Panel -->
+    <nav class="bg-dark text-white p-3" style="width: 250px; overflow-y: auto;">
+        <h3 class="mb-4">AI E-commerce</h3>
+        
+        <!-- Management Section -->
+        <div class="mb-4">
+            <h5>Product Management</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="#" class="text-white text-decoration-none" onclick="loadCategories()">
+                        <i class="bi bi-folder"></i> Manage Categories
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="text-white text-decoration-none" onclick="loadSKUs()">
+                        <i class="bi bi-box"></i> Manage SKUs
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Search Section -->
+        <div class="mb-4">
+            <h5>Search & Browse</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="#" class="text-white text-decoration-none" onclick="loadCatalog()">
+                        <i class="bi bi-grid-3x3-gap"></i> Product Catalog
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="/catalog/customer" class="text-white text-decoration-none" target="_blank">
+                        <i class="bi bi-shop"></i> Customer Catalog
+                    </a>
+                </li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="loadSearchPage()">
+                    <i class="bi bi-search"></i> Product Search
+                </a></li>
+            </ul>
+        </div>
+        
+        <!-- API Section -->
+        <div class="mb-4">
+            <h5>API Endpoints</h5>
+            <ul class="list-unstyled ms-3" id="apiList">
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/categories', ['GET', 'POST'])">Categories</a></li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/categories/{id}', ['GET', 'PUT', 'DELETE'])">Category Detail</a></li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/skus', ['GET', 'POST'])">SKUs</a></li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/skus/{id}', ['GET', 'PUT', 'DELETE'])">SKU Detail</a></li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/search', ['POST'])">Search</a></li>
+                <li><a href="#" class="text-white text-decoration-none" onclick="showAPIDoc('/api/sync/shopify', ['POST'])">Shopify Sync</a></li>
+            </ul>
+        </div>
+        
+        <!-- Vector Search Section -->
+        <div class="mb-4">
+            <h5>Vector Search</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="#" class="text-white text-decoration-none" onclick="loadVectorConfig()">
+                        <i class="bi bi-cpu"></i> Vector Configuration
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Shopify Section -->
+        <div class="mb-4">
+            <h5>Shopify Integration</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="#" class="text-white text-decoration-none" onclick="loadShopifyManagement()">
+                        <i class="bi bi-shop"></i> Shopify Management
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Settings Section -->
+        <div class="mb-4">
+            <h5>Settings</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="#" class="text-white text-decoration-none" onclick="loadSettings()">
+                        <i class="bi bi-gear"></i> General Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Right Content Area -->
+    <main class="flex-grow-1 p-0">
+        <iframe id="contentFrame" src="/search" style="width: 100%; height: 100%; border: none;"></iframe>
+    </main>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalTitle">Add Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="categoryId">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="categoryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryHandle" class="form-label">Handle</label>
+                        <input type="text" class="form-control" id="categoryHandle">
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="categoryDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryParent" class="form-label">Parent Category</label>
+                        <select class="form-control" id="categoryParent">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCategory()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SKU Modal -->
+<div class="modal fade" id="skuModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="skuModalTitle">Add SKU</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="skuForm">
+                    <input type="hidden" id="skuId">
+                    
+                    <!-- Image Upload Section -->
+                    <div class="mb-4">
+                        <label class="form-label">Product Images</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="sku-image-upload-area text-center p-3 border rounded" 
+                                     onclick="document.getElementById('skuImageFile').click()">
+                                    <i class="bi bi-image display-6 text-muted"></i>
+                                    <p class="mt-2 mb-0">Click to upload product image</p>
+                                    <p class="text-muted small">JPG, PNG, GIF up to 16MB</p>
+                                    <input type="file" id="skuImageFile" class="d-none" accept="image/*" onchange="handleSKUImageSelect(event)">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="skuImagePreview" class="d-none">
+                                    <img id="skuPreviewImg" class="img-thumbnail w-100" style="max-height: 150px; object-fit: cover;">
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="clearSKUImage()">
+                                        <i class="bi bi-x"></i> Remove Image
+                                    </button>
+                                </div>
+                                <div id="skuImageUrlSection" class="mt-2">
+                                    <label for="skuImageUrl" class="form-label small">Or enter image URL:</label>
+                                    <input type="url" class="form-control form-control-sm" id="skuImageUrl" placeholder="https://example.com/image.jpg" onchange="handleSKUImageUrl()" onblur="handleSKUImageUrl()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Basic Information -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="skuTitle" class="form-label">Title *</label>
+                            <input type="text" class="form-control" id="skuTitle" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="skuCode" class="form-label">SKU Code</label>
+                            <input type="text" class="form-control" id="skuCode">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="skuDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="skuDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <!-- Pricing and Details -->
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="skuPrice" class="form-label">Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="skuPrice" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="skuVendor" class="form-label">Vendor</label>
+                            <input type="text" class="form-control" id="skuVendor">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="skuProductType" class="form-label">Product Type</label>
+                            <input type="text" class="form-control" id="skuProductType">
+                        </div>
+                    </div>
+                    
+                    <!-- Inventory -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="skuQuantity" class="form-label">Stock Quantity</label>
+                            <input type="number" class="form-control" id="skuQuantity" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="skuWeight" class="form-label">Weight (kg)</label>
+                            <input type="number" class="form-control" id="skuWeight" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <!-- Categories and Tags -->
+                    <div class="mb-3">
+                        <label for="skuCategories" class="form-label">Categories</label>
+                        <select class="form-control" id="skuCategories" multiple>
+                            <!-- Categories will be loaded dynamically -->
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="skuTags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="skuTags" placeholder="Enter tags separated by commas">
+                        <div class="form-text">e.g. electronics, mobile, smartphone</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSKU()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Documentation Modal -->
+<div class="modal fade" id="apiModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="apiModalTitle">API Documentation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="apiDocContent">
+                    <!-- API documentation will be loaded here -->
+                </div>
+                <hr>
+                <h6>Test API</h6>
+                <div class="mb-3">
+                    <label for="apiMethod" class="form-label">Method</label>
+                    <select class="form-control" id="apiMethod">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="apiPath" class="form-label">Path</label>
+                    <input type="text" class="form-control" id="apiPath">
+                </div>
+                <div class="mb-3">
+                    <label for="apiBody" class="form-label">Request Body (JSON)</label>
+                    <textarea class="form-control" id="apiBody" rows="5"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="testAPI()">Test API</button>
+                <div class="mt-3">
+                    <h6>Response</h6>
+                    <pre id="apiResponse" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

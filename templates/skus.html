@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}SKU Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>SKU Management</h2>
+                <button class="btn btn-primary" onclick="parent.showAddSKUModal()">
+                    <i class="bi bi-plus"></i> Add SKU
+                </button>
+            </div>
+            
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="categoryFilter" class="form-label">Filter by Category</label>
+                            <select class="form-control" id="categoryFilter" onchange="filterSKUs()">
+                                <option value="">All Categories</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchFilter" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchFilter" placeholder="Search SKUs..." onkeyup="searchSKUs()">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary" onclick="loadSKUs()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SKU List -->
+            <div class="card">
+                <div class="card-body">
+                    <div id="skuList">
+                        <!-- SKUs will be loaded here -->
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="SKU pagination" class="mt-4">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Pagination will be loaded here -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let currentCategoryFilter = '';
+let currentSearchFilter = '';
+
+// Load SKUs
+async function loadSKUs(page = 1) {
+    currentPage = page;
+    
+    try {
+        let url = `/api/skus?page=${page}&per_page=20`;
+        if (currentCategoryFilter) {
+            url += `&category_id=${currentCategoryFilter}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        displaySKUs(data.skus || []);
+        displayPagination(data.page, data.pages, data.total);
+        
+        // Load categories for filter
+        if (page === 1) {
+            loadCategoriesFilter();
+        }
+    } catch (error) {
+        console.error('Error loading SKUs:', error);
+        document.getElementById('skuList').innerHTML = '<div class="alert alert-danger">Failed to load SKUs</div>';
+    }
+}
+
+// Display SKUs
+function displaySKUs(skus) {
+    const skuList = document.getElementById('skuList');
+    
+    if (skus.length === 0) {
+        skuList.innerHTML = '<div class="alert alert-info">No SKUs found</div>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
+    html += '<thead><tr><th>Image</th><th>Title</th><th>SKU Code</th><th>Price</th><th>Stock</th><th>Categories</th><th>Actions</th></tr></thead><tbody>';
+    
+    skus.forEach(sku => {
+        const imageUrl = sku.images && sku.images.length > 0 ? sku.images[0].url : '/static/images/placeholder.svg';
+        const categories = sku.categories ? sku.categories.map(cat => cat.name).join(', ') : '';
+        const price = sku.price ? `$${parseFloat(sku.price).toFixed(2)}` : 'N/A';
+        
+        html += `
+            <tr>
+                <td><img src="${imageUrl}" alt="${sku.title}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded"></td>
+                <td>
+                    <strong>${sku.title}</strong><br>
+                    <small class="text-muted">${sku.vendor || ''}</small>
+                </td>
+                <td>${sku.sku_code || 'N/A'}</td>
+                <td>${price}</td>
+                <td>${sku.quantity || 0}</td>
+                <td><small>${categories}</small></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="parent.editSKU(${sku.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSKU(${sku.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    skuList.innerHTML = html;
+}
+
+// Display pagination
+function displayPagination(currentPage, totalPages, totalItems) {
+    const pagination = document.getElementById('pagination');
+    let html = '';
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    // Previous button
+    html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadSKUs(${currentPage - 1})">Previous</a>
+    </li>`;
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="loadSKUs(${i})">${i}</a>
+        </li>`;
+    }
+    
+    // Next button
+    html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadSKUs(${currentPage + 1})">Next</a>
+    </li>`;
+    
+    pagination.innerHTML = html;
+}
+
+// Load categories for filter
+async function loadCategoriesFilter() {
+    try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        
+        const categoryFilter = document.getElementById('categoryFilter');
+        categoryFilter.innerHTML = '<option value="">All Categories</option>';
+        
+        data.categories.forEach(category => {
+            categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+        });
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Filter by category
+function filterSKUs() {
+    currentCategoryFilter = document.getElementById('categoryFilter').value;
+    loadSKUs(1);
+}
+
+// Search SKUs
+function searchSKUs() {
+    currentSearchFilter = document.getElementById('searchFilter').value;
+    // For now, just filter client-side
+    // In a real app, you'd want server-side search
+    const query = currentSearchFilter.toLowerCase();
+    const rows = document.querySelectorAll('#skuList tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+// Delete SKU
+async function deleteSKU(id) {
+    if (!confirm('Are you sure you want to delete this SKU?')) return;
+    
+    try {
+        const response = await fetch(`/api/skus/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            parent.showToast('SKU deleted successfully');
+            loadSKUs(currentPage);
+        } else {
+            throw new Error('Delete failed');
+        }
+    } catch (error) {
+        parent.showToast('Failed to delete SKU', 'error');
+    }
+}
+
+// Load SKUs when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadSKUs();
+});
+</script>
+{% endblock %}

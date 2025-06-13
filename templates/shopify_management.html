@@ -1,0 +1,822 @@
+{% extends "base.html" %}
+
+{% block title %}Shopify Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="mb-4">
+                <i class="bi bi-shop"></i> Shopify Management
+            </h1>
+            
+            <!-- Connection Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wifi"></i> Connection Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="connectionStatus" class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Checking...</span>
+                        </div>
+                        <span>Checking connection...</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary me-2" onclick="testConnection()">
+                            <i class="bi bi-arrow-clockwise"></i> Test Connection
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="loadConfiguration()">
+                            <i class="bi bi-gear"></i> Reload Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sync Operations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-repeat"></i> Sync Operations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Product Synchronization</h6>
+                            <p class="text-muted">
+                                Sync products from your Shopify store to the local database and vector index.
+                                This will import all products, categories, images, and variants.
+                            </p>
+                            
+                            <!-- Sync Statistics -->
+                            <div id="syncStats" class="mb-3">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="totalProducts">-</h5>
+                                                <small class="text-muted">Total Syncs</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="lastSyncStatus">-</h5>
+                                                <small class="text-muted">Last Status</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="processedItems">-</h5>
+                                                <small class="text-muted">Items Processed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="lastSyncTime">-</h5>
+                                                <small class="text-muted">Last Sync</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" onclick="startFullSync()" id="fullSyncBtn">
+                                    <i class="bi bi-arrow-repeat"></i> Full Sync
+                                </button>
+                                <button class="btn btn-info" onclick="startTestSync()" id="testSyncBtn">
+                                    <i class="bi bi-play-circle"></i> Test Sync (Demo)
+                                </button>
+                                <button class="btn btn-warning" onclick="stopSyncPolling()" id="stopPollingBtn">
+                                    <i class="bi bi-stop"></i> Stop Status Polling
+                                </button>
+                                <button class="btn btn-danger" onclick="cancelAllSyncs()" id="cancelSyncsBtn">
+                                    <i class="bi bi-x-circle"></i> Cancel All Syncs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Sync Status -->
+                    <div id="currentSyncStatus" class="mt-4 d-none">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-info-circle"></i> 
+                                        <span id="syncStatusTitle">Sync Status</span>
+                                    </h6>
+                                    <div id="syncStatusMessage">Ready to sync</div>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary" id="syncStatusBadge">Ready</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div id="syncProgress" class="mt-3 d-none">
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" role="progressbar" id="progressBar" style="width: 0%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted">
+                                    <span id="progressText">Starting...</span>
+                                    <span id="progressStats">0/0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sync Log -->
+                    <div id="syncLog" class="mt-4 d-none">
+                        <h6>Sync Activity Log</h6>
+                        <div class="bg-dark text-light p-3 rounded" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85em;">
+                            <div id="syncLogContent"></div>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearSyncLog()">
+                                <i class="bi bi-trash"></i> Clear Log
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Shopify Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="shopifyConfigForm" onsubmit="saveConfiguration(event)">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="storeUrl" class="form-label">
+                                    <strong>Store URL</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="Your Shopify store URL (e.g., mystore.myshopify.com)"></i>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">https://</span>
+                                    <input type="text" class="form-control" id="storeUrl" 
+                                           placeholder="mystore.myshopify.com" required>
+                                    <div id="storeUrlStatus" class="input-group-text">
+                                        <i class="bi bi-question-circle text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Enter your Shopify store domain (without https://)
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label for="accessToken" class="form-label">
+                                    <strong>Access Token</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="Private app access token from your Shopify admin"></i>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="accessToken" 
+                                           placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxx" required>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('accessToken')">
+                                        <i class="bi bi-eye" id="accessTokenEye"></i>
+                                    </button>
+                                    <div id="accessTokenStatus" class="input-group-text">
+                                        <i class="bi bi-question-circle text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Your Shopify private app access token (starts with "shpat_")
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="apiVersion" class="form-label">
+                                    <strong>API Version</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="Shopify API version to use"></i>
+                                </label>
+                                <select class="form-control" id="apiVersion" required>
+                                    <option value="2024-01">2024-01 (Recommended)</option>
+                                    <option value="2023-10">2023-10</option>
+                                    <option value="2023-07">2023-07</option>
+                                    <option value="2023-04">2023-04</option>
+                                </select>
+                                <div class="form-text">
+                                    Select the Shopify API version to use
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadConfiguration()">
+                                <i class="bi bi-arrow-clockwise"></i> Reload
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Recent Sync History -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Recent Sync History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sync ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th>Duration</th>
+                                    <th>Items</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="syncHistoryTable">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Loading sync history...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="loadSyncHistory()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh History
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> How to Get Shopify Credentials
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>1. Create a Private App</h6>
+                            <ol class="small">
+                                <li>Go to your Shopify Admin → Settings → Apps and sales channels</li>
+                                <li>Click "Develop apps" → "Create an app"</li>
+                                <li>Give your app a name (e.g., "AI Product Search")</li>
+                                <li>Click "Create app"</li>
+                            </ol>
+                            
+                            <h6>2. Configure API Permissions</h6>
+                            <ul class="small">
+                                <li><strong>Products:</strong> Read access</li>
+                                <li><strong>Collections:</strong> Read access</li>
+                                <li><strong>Inventory:</strong> Read access</li>
+                                <li><strong>Product listings:</strong> Read access</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>3. Get Access Token</h6>
+                            <ol class="small">
+                                <li>Click "Install app" in your private app</li>
+                                <li>Copy the "Admin API access token"</li>
+                                <li>Paste it in the "Access Token" field above</li>
+                            </ol>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h6><i class="bi bi-shield-check"></i> Security Note</h6>
+                                <p class="small mb-0">
+                                    Store credentials in environment variables for production use. 
+                                    Never commit access tokens to version control.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Environment Variables Info -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-server"></i> Environment Variables
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>For production deployment, set these environment variables:</p>
+                    <pre class="bg-light p-3 rounded"><code>SHOPIFY_STORE_URL=your-store.myshopify.com
+SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxxxxxx
+SHOPIFY_API_VERSION=2024-01</code></pre>
+                    <div class="alert alert-warning mt-3">
+                        <strong>Note:</strong> Environment variables take precedence over settings saved through this interface.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configuration management
+let configData = {};
+let currentSyncPoll = null;
+let currentSyncId = null;
+
+// Load configuration on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    loadConfiguration();
+    loadSyncHistory();
+    getSyncStats();
+});
+
+// Load current configuration
+async function loadConfiguration() {
+    try {
+        const response = await fetch('/api/shopify/config');
+        const data = await response.json();
+        
+        configData = data;
+        
+        // Update form fields
+        document.getElementById('storeUrl').value = data.store_url || '';
+        document.getElementById('accessToken').value = data.access_token || '';
+        document.getElementById('apiVersion').value = data.api_version || '2024-01';
+        
+        // Update status indicators
+        updateFieldStatus('storeUrl', data.store_url_source);
+        updateFieldStatus('accessToken', data.access_token_source);
+        
+        // Check connection status
+        checkConnectionStatus();
+        
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+        showToast('Failed to load configuration', 'error');
+    }
+}
+
+// Update field status indicators
+function updateFieldStatus(fieldId, source) {
+    const statusElement = document.getElementById(fieldId + 'Status');
+    const inputElement = document.getElementById(fieldId);
+    
+    if (source === 'environment') {
+        statusElement.innerHTML = '<i class="bi bi-shield-check text-success" title="Set in environment"></i>';
+        inputElement.disabled = true;
+        inputElement.placeholder = 'Set in environment variables';
+    } else if (source === 'database') {
+        statusElement.innerHTML = '<i class="bi bi-database text-info" title="Saved in database"></i>';
+        inputElement.disabled = false;
+    } else {
+        statusElement.innerHTML = '<i class="bi bi-exclamation-triangle text-warning" title="Not configured"></i>';
+        inputElement.disabled = false;
+    }
+}
+
+// Save configuration
+async function saveConfiguration(event) {
+    event.preventDefault();
+    
+    const formData = {
+        store_url: document.getElementById('storeUrl').value.trim(),
+        access_token: document.getElementById('accessToken').value.trim(),
+        api_version: document.getElementById('apiVersion').value
+    };
+    
+    // Validate form
+    if (!formData.store_url || !formData.access_token) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    // Validate store URL format
+    if (!formData.store_url.endsWith('.myshopify.com')) {
+        showToast('Store URL should end with .myshopify.com', 'error');
+        return;
+    }
+    
+    // Validate access token format
+    if (!formData.access_token.startsWith('shpat_')) {
+        showToast('Access token should start with "shpat_"', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/shopify/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Configuration saved successfully', 'success');
+            loadConfiguration(); // Reload to update status
+        } else {
+            showToast(result.error || 'Failed to save configuration', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showToast('Failed to save configuration', 'error');
+    }
+}
+
+// Test connection
+async function testConnection() {
+    const statusElement = document.getElementById('connectionStatus');
+    statusElement.innerHTML = `
+        <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Testing...</span>
+        </div>
+        <span>Testing connection...</span>
+    `;
+    
+    try {
+        const response = await fetch('/api/shopify/test', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.connected) {
+            statusElement.innerHTML = `
+                <i class="bi bi-check-circle text-success me-2"></i>
+                <span class="text-success">Connected to ${result.shop_name || 'Shopify'}</span>
+            `;
+            showToast('Successfully connected to Shopify!', 'success');
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Connection failed: ${result.error || 'Unknown error'}</span>
+            `;
+            showToast(`Connection failed: ${result.error || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        statusElement.innerHTML = `
+            <i class="bi bi-x-circle text-danger me-2"></i>
+            <span class="text-danger">Connection test failed</span>
+        `;
+        showToast('Connection test failed', 'error');
+    }
+}
+
+// Check connection status on load
+async function checkConnectionStatus() {
+    try {
+        const response = await fetch('/api/shopify/status');
+        const result = await response.json();
+        
+        const statusElement = document.getElementById('connectionStatus');
+        
+        if (result.configured) {
+            if (result.connected) {
+                statusElement.innerHTML = `
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <span class="text-success">Connected and ready</span>
+                `;
+            } else {
+                statusElement.innerHTML = `
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    <span class="text-warning">Configured but not connected</span>
+                `;
+            }
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Not configured</span>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error checking status:', error);
+        const statusElement = document.getElementById('connectionStatus');
+        statusElement.innerHTML = `
+            <i class="bi bi-question-circle text-muted me-2"></i>
+            <span class="text-muted">Status unknown</span>
+        `;
+    }
+}
+
+// Start full sync
+async function startFullSync() {
+    if (!confirm('This will sync all products from Shopify. Continue?')) {
+        return;
+    }
+    
+    await startSync('full');
+}
+
+// Start test sync
+async function startTestSync() {
+    await startSync('full', true);
+}
+
+// Start sync (common function)
+async function startSync(syncType = 'full', testMode = false) {
+    // Stop any existing polling
+    if (currentSyncPoll) {
+        clearTimeout(currentSyncPoll);
+        currentSyncPoll = null;
+    }
+    
+    try {
+        const payload = { 
+            sync_type: syncType,
+            test_mode: testMode
+        };
+        
+        const result = await apiCall('/sync/shopify', 'POST', payload);
+        currentSyncId = result.sync_id;
+        
+        showToast(`${testMode ? 'Test sync' : 'Sync'} started. ID: ${result.sync_id}`, 'info');
+        
+        // Show sync status section
+        document.getElementById('currentSyncStatus').classList.remove('d-none');
+        document.getElementById('syncLog').classList.remove('d-none');
+        
+        // Update UI
+        updateSyncUI(true);
+        
+        // Start polling for status
+        pollSyncStatus(result.sync_id);
+        
+    } catch (error) {
+        showToast('Failed to start sync', 'error');
+        console.error('Sync error:', error);
+    }
+}
+
+// Poll sync status
+function pollSyncStatus(syncId) {
+    let pollCount = 0;
+    const maxPolls = 200; // 10 minutes max (200 * 3 seconds)
+    
+    const checkStatus = async () => {
+        try {
+            pollCount++;
+            const status = await apiCall(`/sync/status/${syncId}`);
+            
+            updateSyncStatusDisplay(status);
+            
+            if (status.status === 'completed') {
+                currentSyncPoll = null;
+                showToast(`Sync completed! Processed: ${status.processed_items || 0}, Failed: ${status.failed_items || 0}`, 'success');
+                updateSyncUI(false);
+                loadSyncHistory();
+                getSyncStats();
+                return;
+            } else if (status.status === 'failed' || status.status === 'cancelled') {
+                currentSyncPoll = null;
+                showToast(`Sync ${status.status}: ${status.error_message || 'Unknown error'}`, 'error');
+                updateSyncUI(false);
+                loadSyncHistory();
+                return;
+            } else if (pollCount >= maxPolls) {
+                currentSyncPoll = null;
+                showToast('Sync timeout - stopping status checks', 'warning');
+                updateSyncUI(false);
+                return;
+            } else {
+                // Continue polling
+                currentSyncPoll = setTimeout(checkStatus, 3000);
+            }
+        } catch (error) {
+            console.error('Error checking sync status:', error);
+            currentSyncPoll = null;
+            updateSyncUI(false);
+        }
+    };
+    
+    checkStatus();
+}
+
+// Update sync status display
+function updateSyncStatusDisplay(status) {
+    const statusTitle = document.getElementById('syncStatusTitle');
+    const statusMessage = document.getElementById('syncStatusMessage');
+    const statusBadge = document.getElementById('syncStatusBadge');
+    const progressSection = document.getElementById('syncProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressStats = document.getElementById('progressStats');
+    const logContent = document.getElementById('syncLogContent');
+    
+    // Update title and message
+    statusTitle.textContent = `Sync #${status.id || 'Unknown'}`;
+    statusMessage.textContent = status.status === 'in_progress' ? 'Syncing products...' : status.status;
+    
+    // Update badge
+    const badgeClasses = {
+        'started': 'bg-info',
+        'in_progress': 'bg-primary',
+        'completed': 'bg-success',
+        'failed': 'bg-danger',
+        'cancelled': 'bg-warning'
+    };
+    statusBadge.className = `badge ${badgeClasses[status.status] || 'bg-secondary'}`;
+    statusBadge.textContent = status.status.charAt(0).toUpperCase() + status.status.slice(1);
+    
+    // Update progress
+    if (status.status === 'in_progress' || status.status === 'started') {
+        progressSection.classList.remove('d-none');
+        
+        const total = status.total_items || 0;
+        const processed = status.processed_items || 0;
+        const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
+        
+        progressBar.style.width = percentage + '%';
+        progressBar.textContent = percentage + '%';
+        progressText.textContent = 'Processing products...';
+        progressStats.textContent = `${processed}/${total}`;
+    } else {
+        progressSection.classList.add('d-none');
+    }
+    
+    // Add log entry
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `[${timestamp}] ${status.status}: ${status.processed_items || 0}/${status.total_items || 0} processed`;
+    logContent.appendChild(logEntry);
+    logContent.scrollTop = logContent.scrollHeight;
+}
+
+// Update sync UI state
+function updateSyncUI(syncing) {
+    document.getElementById('fullSyncBtn').disabled = syncing;
+    document.getElementById('testSyncBtn').disabled = syncing;
+    
+    if (syncing) {
+        document.getElementById('fullSyncBtn').innerHTML = '<i class="bi bi-hourglass-split"></i> Syncing...';
+        document.getElementById('testSyncBtn').innerHTML = '<i class="bi bi-hourglass-split"></i> Syncing...';
+    } else {
+        document.getElementById('fullSyncBtn').innerHTML = '<i class="bi bi-arrow-repeat"></i> Full Sync';
+        document.getElementById('testSyncBtn').innerHTML = '<i class="bi bi-play-circle"></i> Test Sync (Demo)';
+    }
+}
+
+// Stop sync polling
+function stopSyncPolling() {
+    if (currentSyncPoll) {
+        clearTimeout(currentSyncPoll);
+        currentSyncPoll = null;
+        showToast('Stopped sync status polling', 'info');
+        updateSyncUI(false);
+    } else {
+        showToast('No active sync polling to stop', 'warning');
+    }
+}
+
+// Cancel all syncs
+async function cancelAllSyncs() {
+    if (!confirm('Cancel all running syncs? This will stop any background sync processes.')) {
+        return;
+    }
+    
+    try {
+        const result = await apiCall('/debug', 'POST', { action: 'cancel_all_syncs' });
+        showToast(result.message, 'success');
+        
+        // Stop current polling
+        stopSyncPolling();
+        loadSyncHistory();
+        
+    } catch (error) {
+        showToast('Failed to cancel syncs', 'error');
+    }
+}
+
+// Load sync history
+async function loadSyncHistory() {
+    try {
+        const result = await apiCall('/debug');
+        const syncs = result.recent_syncs || [];
+        
+        const tbody = document.getElementById('syncHistoryTable');
+        
+        if (syncs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No sync history available</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = syncs.map(sync => {
+            const duration = sync.completed_at && sync.started_at ? 
+                Math.round((new Date(sync.completed_at) - new Date(sync.started_at)) / 1000) + 's' : 
+                '-';
+            
+            const statusBadge = {
+                'completed': 'success',
+                'failed': 'danger',
+                'cancelled': 'warning',
+                'in_progress': 'primary',
+                'started': 'info'
+            }[sync.status] || 'secondary';
+            
+            return `
+                <tr>
+                    <td>${sync.id}</td>
+                    <td>${sync.sync_type || 'full'}</td>
+                    <td><span class="badge bg-${statusBadge}">${sync.status}</span></td>
+                    <td>${sync.started_at ? new Date(sync.started_at).toLocaleString() : '-'}</td>
+                    <td>${duration}</td>
+                    <td>${sync.processed_items || 0}/${sync.total_items || 0}</td>
+                    <td>
+                        ${sync.status === 'in_progress' || sync.status === 'started' ? 
+                            `<button class="btn btn-sm btn-outline-primary" onclick="pollSyncStatus(${sync.id})">
+                                <i class="bi bi-eye"></i> Monitor
+                            </button>` : 
+                            '-'
+                        }
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Error loading sync history:', error);
+        document.getElementById('syncHistoryTable').innerHTML = 
+            '<tr><td colspan="7" class="text-center text-muted">Failed to load sync history</td></tr>';
+    }
+}
+
+// Get sync statistics
+async function getSyncStats() {
+    try {
+        const result = await apiCall('/debug');
+        const syncs = result.recent_syncs || [];
+        
+        document.getElementById('totalProducts').textContent = syncs.length;
+        
+        if (syncs.length > 0) {
+            const lastSync = syncs[0];
+            document.getElementById('lastSyncStatus').textContent = lastSync.status;
+            document.getElementById('processedItems').textContent = lastSync.processed_items || 0;
+            document.getElementById('lastSyncTime').textContent = lastSync.started_at ? 
+                new Date(lastSync.started_at).toLocaleDateString() : 'Never';
+        } else {
+            document.getElementById('lastSyncStatus').textContent = 'Never';
+            document.getElementById('processedItems').textContent = '0';
+            document.getElementById('lastSyncTime').textContent = 'Never';
+        }
+        
+    } catch (error) {
+        console.error('Error getting sync stats:', error);
+    }
+}
+
+// Clear sync log
+function clearSyncLog() {
+    document.getElementById('syncLogContent').innerHTML = '';
+}
+
+// Toggle password visibility
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const eye = document.getElementById(fieldId + 'Eye');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        eye.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        eye.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

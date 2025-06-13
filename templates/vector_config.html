@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+
+{% block title %}Vector Search Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="mb-4">
+                <i class="bi bi-cpu"></i> Vector Search Configuration
+            </h1>
+            
+            <!-- Connection Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wifi"></i> Weaviate Connection Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="connectionStatus" class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Checking...</span>
+                        </div>
+                        <span>Checking connection...</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary me-2" onclick="testConnection()">
+                            <i class="bi bi-arrow-clockwise"></i> Test Connection
+                        </button>
+                        <button class="btn btn-outline-info" onclick="checkSchema()">
+                            <i class="bi bi-diagram-3"></i> Check Schema
+                        </button>
+                    </div>
+                    
+                    <div id="schemaStatus" class="mt-3 d-none">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> Schema Status</h6>
+                            <div id="schemaDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Weaviate Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="vectorConfigForm" onsubmit="saveConfiguration(event)">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="weaviateUrl" class="form-label">
+                                    <strong>Weaviate URL</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="The endpoint where your Weaviate instance is running"></i>
+                                </label>
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="weaviateUrl" 
+                                           placeholder="http://localhost:8080" required>
+                                    <div id="urlStatus" class="input-group-text">
+                                        <i class="bi bi-question-circle text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    URL of your Weaviate instance (e.g., http://localhost:8080 or https://your-cluster.weaviate.network)
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label for="apiKey" class="form-label">
+                                    <strong>API Key</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="API key for authentication (leave empty for local instances)"></i>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="apiKey" 
+                                           placeholder="Leave empty for local instances">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('apiKey')">
+                                        <i class="bi bi-eye" id="apiKeyEye"></i>
+                                    </button>
+                                    <div id="apiKeyStatus" class="input-group-text">
+                                        <i class="bi bi-question-circle text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    API key for Weaviate authentication (optional for local development)
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="vectorizer" class="form-label">
+                                    <strong>Vectorizer</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="The vectorization model to use for text and image processing"></i>
+                                </label>
+                                <select class="form-control" id="vectorizer" required>
+                                    <option value="text2vec-transformers">text2vec-transformers (Recommended)</option>
+                                    <option value="text2vec-openai">text2vec-openai</option>
+                                    <option value="text2vec-cohere">text2vec-cohere</option>
+                                    <option value="text2vec-huggingface">text2vec-huggingface</option>
+                                    <option value="multi2vec-clip">multi2vec-clip (Text + Image)</option>
+                                </select>
+                                <div class="form-text">
+                                    Choose the vectorization model based on your Weaviate setup
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label for="timeout" class="form-label">
+                                    <strong>Connection Timeout (seconds)</strong>
+                                </label>
+                                <input type="number" class="form-control" id="timeout" 
+                                       value="30" min="5" max="300">
+                                <div class="form-text">
+                                    Timeout for Weaviate operations
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="openaiApiKey" class="form-label">
+                                    <strong>OpenAI API Key</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="Required for image embeddings and advanced text processing"></i>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="openaiApiKey" 
+                                           placeholder="sk-...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('openaiApiKey')">
+                                        <i class="bi bi-eye" id="openaiApiKeyEye"></i>
+                                    </button>
+                                    <div id="openaiApiKeyStatus" class="input-group-text">
+                                        <i class="bi bi-question-circle text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Required for image search and OpenAI-based vectorization. Get your key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>.
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label for="imageEmbeddingModel" class="form-label">
+                                    <strong>Image Embedding Model</strong>
+                                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" 
+                                       title="Model used for generating image embeddings"></i>
+                                </label>
+                                <select class="form-control" id="imageEmbeddingModel">
+                                    <option value="clip-vit-base-patch32">CLIP ViT-B/32 (Default)</option>
+                                    <option value="openai-ada-002">OpenAI Ada-002 (Text + Description)</option>
+                                    <option value="openai-clip">OpenAI CLIP (Vision)</option>
+                                </select>
+                                <div class="form-text">
+                                    Choose the model for processing product images
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadConfiguration()">
+                                <i class="bi bi-arrow-clockwise"></i> Reload
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Indexing Operations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-database"></i> Index Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Product Indexing</h6>
+                            <p class="text-muted">
+                                Index all products in Weaviate for vector search capabilities. 
+                                This process will add/update all SKUs with their text and image data.
+                            </p>
+                            
+                            <div id="indexStats" class="mb-3">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="totalSKUs">-</h5>
+                                                <small class="text-muted">Total SKUs</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="indexedSKUs">-</h5>
+                                                <small class="text-muted">Indexed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="skusWithImages">-</h5>
+                                                <small class="text-muted">With Images</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 class="mb-0" id="lastIndexed">-</h5>
+                                                <small class="text-muted">Last Indexed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" onclick="startReindex()" id="reindexBtn">
+                                    <i class="bi bi-arrow-repeat"></i> Reindex All Products
+                                </button>
+                                <button class="btn btn-warning" onclick="clearIndex()" id="clearIndexBtn">
+                                    <i class="bi bi-trash"></i> Clear Index
+                                </button>
+                                <button class="btn btn-info" onclick="getIndexStats()">
+                                    <i class="bi bi-bar-chart"></i> Refresh Stats
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Indexing Progress -->
+                    <div id="indexingProgress" class="mt-4 d-none">
+                        <h6>Indexing Progress</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span id="progressText">Starting...</span>
+                            <span id="progressStats">0/0</span>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-danger" onclick="stopIndexing()">
+                                <i class="bi bi-stop"></i> Stop
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Indexing Log -->
+                    <div id="indexingLog" class="mt-4 d-none">
+                        <h6>Indexing Log</h6>
+                        <div class="bg-dark text-light p-3 rounded" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85em;">
+                            <div id="logContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Start Guide -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-play-circle"></i> Quick Start Guide
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>1. Local Development Setup</h6>
+                            <p class="small">Start Weaviate locally using Docker:</p>
+                            <pre class="bg-light p-2 rounded small"><code>docker run -d \
+  --name weaviate \
+  -p 8080:8080 \
+  -e AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true \
+  -e PERSISTENCE_DATA_PATH='/var/lib/weaviate' \
+  -e DEFAULT_VECTORIZER_MODULE='text2vec-transformers' \
+  -e ENABLE_MODULES='text2vec-transformers,img2vec-neural' \
+  semitechnologies/weaviate:latest</code></pre>
+                            
+                            <h6 class="mt-3">2. Configuration</h6>
+                            <ul class="small">
+                                <li>URL: <code>http://localhost:8080</code></li>
+                                <li>API Key: Leave empty</li>
+                                <li>Vectorizer: text2vec-transformers</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>3. Cloud Setup</h6>
+                            <p class="small">For Weaviate Cloud Services:</p>
+                            <ul class="small">
+                                <li>Create a cluster at <a href="https://console.weaviate.cloud" target="_blank">Weaviate Cloud</a></li>
+                                <li>Use the provided cluster URL</li>
+                                <li>Add your API key for authentication</li>
+                                <li>Choose appropriate vectorizer</li>
+                            </ul>
+                            
+                            <h6 class="mt-3">4. Environment Variables</h6>
+                            <p class="small">For production, set:</p>
+                            <pre class="bg-light p-2 rounded small"><code>WEAVIATE_URL=https://your-cluster.weaviate.network
+WEAVIATE_API_KEY=your-api-key
+WEAVIATE_VECTORIZER=text2vec-transformers</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="bi bi-lightbulb"></i> Pro Tips</h6>
+                        <ul class="small mb-0">
+                            <li><strong>multi2vec-clip</strong> vectorizer enables both text and image search from the same vector space</li>
+                            <li><strong>Reindex after configuration changes</strong> to ensure all products use the new settings</li>
+                            <li><strong>Monitor indexing progress</strong> - large catalogs may take time to process</li>
+                            <li><strong>Use environment variables</strong> in production for security</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configuration management
+let configData = {};
+let indexingInterval = null;
+
+// Load configuration on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    loadConfiguration();
+    getIndexStats();
+});
+
+// Load current configuration
+async function loadConfiguration() {
+    try {
+        const response = await fetch('/api/vector/config');
+        const data = await response.json();
+        
+        configData = data;
+        
+        // Update form fields
+        document.getElementById('weaviateUrl').value = data.weaviate_url || 'http://localhost:8080';
+        document.getElementById('apiKey').value = data.api_key || '';
+        document.getElementById('vectorizer').value = data.vectorizer || 'text2vec-transformers';
+        document.getElementById('timeout').value = data.timeout || 30;
+        document.getElementById('openaiApiKey').value = data.openai_api_key || '';
+        document.getElementById('imageEmbeddingModel').value = data.image_embedding_model || 'clip-vit-base-patch32';
+        
+        // Update status indicators
+        updateFieldStatus('weaviateUrl', data.url_source);
+        updateFieldStatus('apiKey', data.api_key_source);
+        updateFieldStatus('openaiApiKey', data.openai_api_key_source);
+        
+        // Check connection status
+        checkConnectionStatus();
+        
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+        showToast('Failed to load configuration', 'error');
+    }
+}
+
+// Update field status indicators
+function updateFieldStatus(fieldId, source) {
+    let statusElement;
+    if (fieldId === 'weaviateUrl') {
+        statusElement = document.getElementById('urlStatus');
+    } else if (fieldId === 'apiKey') {
+        statusElement = document.getElementById('apiKeyStatus');
+    } else if (fieldId === 'openaiApiKey') {
+        statusElement = document.getElementById('openaiApiKeyStatus');
+    }
+    
+    const inputElement = document.getElementById(fieldId);
+    
+    if (source === 'environment') {
+        statusElement.innerHTML = '<i class="bi bi-shield-check text-success" title="Set in environment"></i>';
+        inputElement.disabled = true;
+        inputElement.placeholder = 'Set in environment variables';
+    } else if (source === 'database') {
+        statusElement.innerHTML = '<i class="bi bi-database text-info" title="Saved in database"></i>';
+        inputElement.disabled = false;
+    } else {
+        statusElement.innerHTML = '<i class="bi bi-exclamation-triangle text-warning" title="Not configured"></i>';
+        inputElement.disabled = false;
+    }
+}
+
+// Save configuration
+async function saveConfiguration(event) {
+    event.preventDefault();
+    
+    const formData = {
+        weaviate_url: document.getElementById('weaviateUrl').value.trim(),
+        api_key: document.getElementById('apiKey').value.trim(),
+        vectorizer: document.getElementById('vectorizer').value,
+        timeout: parseInt(document.getElementById('timeout').value),
+        openai_api_key: document.getElementById('openaiApiKey').value.trim(),
+        image_embedding_model: document.getElementById('imageEmbeddingModel').value
+    };
+    
+    // Validate form
+    if (!formData.weaviate_url) {
+        showToast('Please provide a Weaviate URL', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/vector/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Vector configuration saved successfully', 'success');
+            loadConfiguration(); // Reload to update status
+        } else {
+            showToast(result.error || 'Failed to save configuration', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showToast('Failed to save configuration', 'error');
+    }
+}
+
+// Test connection
+async function testConnection() {
+    const statusElement = document.getElementById('connectionStatus');
+    statusElement.innerHTML = `
+        <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Testing...</span>
+        </div>
+        <span>Testing connection...</span>
+    `;
+    
+    try {
+        const response = await fetch('/api/vector/test', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.connected) {
+            statusElement.innerHTML = `
+                <i class="bi bi-check-circle text-success me-2"></i>
+                <span class="text-success">Connected to Weaviate</span>
+            `;
+            showToast('Successfully connected to Weaviate!', 'success');
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Connection failed: ${result.error || 'Unknown error'}</span>
+            `;
+            showToast(`Connection failed: ${result.error || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        statusElement.innerHTML = `
+            <i class="bi bi-x-circle text-danger me-2"></i>
+            <span class="text-danger">Connection test failed</span>
+        `;
+        showToast('Connection test failed', 'error');
+    }
+}
+
+// Check connection status on load
+async function checkConnectionStatus() {
+    try {
+        const response = await fetch('/api/vector/status');
+        const result = await response.json();
+        
+        const statusElement = document.getElementById('connectionStatus');
+        
+        if (result.configured) {
+            if (result.connected) {
+                statusElement.innerHTML = `
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <span class="text-success">Connected and ready</span>
+                `;
+            } else {
+                statusElement.innerHTML = `
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    <span class="text-warning">Configured but not connected</span>
+                `;
+            }
+        } else {
+            statusElement.innerHTML = `
+                <i class="bi bi-x-circle text-danger me-2"></i>
+                <span class="text-danger">Not configured</span>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error checking status:', error);
+        const statusElement = document.getElementById('connectionStatus');
+        statusElement.innerHTML = `
+            <i class="bi bi-question-circle text-muted me-2"></i>
+            <span class="text-muted">Status unknown</span>
+        `;
+    }
+}
+
+// Check schema
+async function checkSchema() {
+    try {
+        const response = await fetch('/api/vector/schema');
+        const result = await response.json();
+        
+        const schemaStatus = document.getElementById('schemaStatus');
+        const schemaDetails = document.getElementById('schemaDetails');
+        
+        if (result.schema_exists) {
+            schemaDetails.innerHTML = `
+                <div class="text-success">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Schema exists with ${result.class_count} classes
+                </div>
+                <div class="small mt-1">
+                    <strong>Classes:</strong> ${result.classes.join(', ')}
+                </div>
+            `;
+        } else {
+            schemaDetails.innerHTML = `
+                <div class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Schema not found - will be created on first index
+                </div>
+            `;
+        }
+        
+        schemaStatus.classList.remove('d-none');
+        
+    } catch (error) {
+        console.error('Error checking schema:', error);
+        showToast('Failed to check schema', 'error');
+    }
+}
+
+// Get index statistics
+async function getIndexStats() {
+    try {
+        const response = await fetch('/api/vector/stats');
+        const result = await response.json();
+        
+        document.getElementById('totalSKUs').textContent = result.total_skus || 0;
+        document.getElementById('indexedSKUs').textContent = result.indexed_skus || 0;
+        document.getElementById('skusWithImages').textContent = result.skus_with_images || 0;
+        document.getElementById('lastIndexed').textContent = result.last_indexed || 'Never';
+        
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        showToast('Failed to get index statistics', 'error');
+    }
+}
+
+// Start reindexing
+async function startReindex() {
+    if (!confirm('This will reindex all products in Weaviate. This may take some time. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/vector/reindex', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Reindexing started', 'success');
+            
+            // Show progress section
+            document.getElementById('indexingProgress').classList.remove('d-none');
+            document.getElementById('indexingLog').classList.remove('d-none');
+            document.getElementById('reindexBtn').disabled = true;
+            document.getElementById('clearIndexBtn').disabled = true;
+            
+            // Start polling for progress
+            pollIndexingProgress(result.task_id);
+        } else {
+            showToast(result.error || 'Failed to start reindexing', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error starting reindex:', error);
+        showToast('Failed to start reindexing', 'error');
+    }
+}
+
+// Poll indexing progress
+function pollIndexingProgress(taskId) {
+    if (indexingInterval) {
+        clearInterval(indexingInterval);
+    }
+    
+    indexingInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/vector/reindex/status/${taskId}`);
+            const result = await response.json();
+            
+            updateProgressDisplay(result);
+            
+            if (result.status === 'completed' || result.status === 'failed') {
+                clearInterval(indexingInterval);
+                indexingInterval = null;
+                
+                document.getElementById('reindexBtn').disabled = false;
+                document.getElementById('clearIndexBtn').disabled = false;
+                
+                if (result.status === 'completed') {
+                    showToast('Indexing completed successfully', 'success');
+                } else {
+                    showToast('Indexing failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+                
+                getIndexStats(); // Refresh stats
+            }
+            
+        } catch (error) {
+            console.error('Error polling progress:', error);
+            clearInterval(indexingInterval);
+            indexingInterval = null;
+        }
+    }, 2000);
+}
+
+// Update progress display
+function updateProgressDisplay(result) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressStats = document.getElementById('progressStats');
+    const logContent = document.getElementById('logContent');
+    
+    const percentage = result.total > 0 ? Math.round((result.processed / result.total) * 100) : 0;
+    
+    progressBar.style.width = percentage + '%';
+    progressBar.textContent = percentage + '%';
+    
+    progressText.textContent = result.current_operation || 'Processing...';
+    progressStats.textContent = `${result.processed}/${result.total}`;
+    
+    // Add new log entries
+    if (result.log_entries && result.log_entries.length > 0) {
+        result.log_entries.forEach(entry => {
+            const logLine = document.createElement('div');
+            logLine.textContent = `[${new Date().toLocaleTimeString()}] ${entry}`;
+            logContent.appendChild(logLine);
+        });
+        
+        // Auto-scroll to bottom
+        logContent.scrollTop = logContent.scrollHeight;
+    }
+}
+
+// Stop indexing
+async function stopIndexing() {
+    if (indexingInterval) {
+        clearInterval(indexingInterval);
+        indexingInterval = null;
+    }
+    
+    try {
+        await fetch('/api/vector/reindex/stop', {
+            method: 'POST'
+        });
+        
+        showToast('Indexing stopped', 'warning');
+        
+        document.getElementById('reindexBtn').disabled = false;
+        document.getElementById('clearIndexBtn').disabled = false;
+        
+    } catch (error) {
+        console.error('Error stopping indexing:', error);
+    }
+}
+
+// Clear index
+async function clearIndex() {
+    if (!confirm('This will remove all products from the vector index. Are you sure?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/vector/clear', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Index cleared successfully', 'success');
+            getIndexStats(); // Refresh stats
+        } else {
+            showToast(result.error || 'Failed to clear index', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error clearing index:', error);
+        showToast('Failed to clear index', 'error');
+    }
+}
+
+// Toggle password visibility
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const eye = document.getElementById(fieldId + 'Eye');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        eye.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        eye.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

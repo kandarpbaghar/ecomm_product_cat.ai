@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Product Search{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-4">AI Product Search</h1>
+            
+            <!-- Search Form -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="searchTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-search" type="button">
+                                <i class="bi bi-search"></i> Text Search
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="image-tab" data-bs-toggle="tab" data-bs-target="#image-search" type="button">
+                                <i class="bi bi-image"></i> Image Search
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="combined-tab" data-bs-toggle="tab" data-bs-target="#combined-search" type="button">
+                                <i class="bi bi-layers"></i> Text + Image
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="searchTabContent">
+                        <!-- Text Search Tab -->
+                        <div class="tab-pane fade show active" id="text-search" role="tabpanel">
+                            <form id="textSearchForm" onsubmit="performTextSearch(event)">
+                                <div class="input-group">
+                                    <input type="text" class="form-control form-control-lg" id="searchQuery" 
+                                           placeholder="Search for products..." required>
+                                    <button class="btn btn-primary btn-lg" type="submit">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Image Search Tab -->
+                        <div class="tab-pane fade" id="image-search" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Upload Product Image</h5>
+                                    <form id="imageSearchForm" onsubmit="performImageSearch(event)">
+                                        <div class="mb-3">
+                                            <div class="image-upload-area text-center p-4 border rounded" 
+                                                 onclick="document.getElementById('imageFile').click()"
+                                                 ondrop="handleDrop(event)"
+                                                 ondragover="handleDragOver(event)"
+                                                 ondragleave="handleDragLeave(event)">
+                                                <i class="bi bi-cloud-upload display-4 text-muted"></i>
+                                                <p class="mt-2 mb-0"><strong>Click to upload or drag and drop</strong></p>
+                                                <p class="text-muted small">PNG, JPG, JPEG, GIF, WEBP up to 16MB</p>
+                                                <input type="file" id="imageFile" class="d-none" accept="image/*" onchange="handleFileSelect(event)">
+                                            </div>
+                                            
+                                            <div id="imagePreview" class="mt-3 text-center d-none">
+                                                <div class="card">
+                                                    <img id="previewImg" class="card-img-top" style="max-height: 300px; object-fit: cover;">
+                                                    <div class="card-body">
+                                                        <p class="card-text small text-muted" id="imageInfo"></p>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                                            <i class="bi bi-x"></i> Remove Image
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-primary btn-lg w-100" type="submit" id="imageSearchBtn" disabled>
+                                            <i class="bi bi-search"></i> Find Similar Products
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h5>How Image Search Works</h5>
+                                    <div class="alert alert-info">
+                                        <h6><i class="bi bi-info-circle"></i> AI-Powered Visual Search</h6>
+                                        <ul class="mb-0 small">
+                                            <li>Upload a product image to find visually similar products</li>
+                                            <li>Our AI analyzes colors, shapes, patterns, and features</li>
+                                            <li>Works best with clear, well-lit product photos</li>
+                                            <li>Supports multiple image formats: JPG, PNG, GIF, WEBP</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <h6>Tips for Better Results:</h6>
+                                    <ul class="small text-muted">
+                                        <li>Use high-quality, clear images</li>
+                                        <li>Ensure good lighting and focus</li>
+                                        <li>Crop to show the main product</li>
+                                        <li>Avoid busy backgrounds</li>
+                                    </ul>
+                                    
+                                    <h6>Example Search:</h6>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadExampleImage('shoes')">
+                                            <i class="bi bi-image"></i> Try Sample: Shoes
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadExampleImage('electronics')">
+                                            <i class="bi bi-image"></i> Try Sample: Electronics
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadExampleImage('clothing')">
+                                            <i class="bi bi-image"></i> Try Sample: Clothing
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Combined Text + Image Search Tab -->
+                        <div class="tab-pane fade" id="combined-search" role="tabpanel">
+                            <div class="mb-4">
+                                <h5><i class="bi bi-layers"></i> Hybrid Text + Image Search</h5>
+                                <p class="text-muted">Search using both text description and product image for more precise results.</p>
+                            </div>
+                            
+                            <form id="combinedSearchForm" onsubmit="performCombinedSearch(event)">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="combinedSearchQuery" class="form-label">Search Description (Optional)</label>
+                                            <input type="text" class="form-control" id="combinedSearchQuery" 
+                                                   placeholder="e.g., red running shoes, wireless headphones...">
+                                            <div class="form-text">Describe what you're looking for to refine image search results</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Product Image (Optional)</label>
+                                            <div class="image-upload-area text-center p-3 border rounded" 
+                                                 onclick="document.getElementById('combinedImageFile').click()"
+                                                 ondrop="handleCombinedDrop(event)"
+                                                 ondragover="handleDragOver(event)"
+                                                 ondragleave="handleDragLeave(event)">
+                                                <i class="bi bi-cloud-upload display-6 text-muted"></i>
+                                                <p class="mt-2 mb-0">Upload an image to refine your search</p>
+                                                <p class="text-muted small">PNG, JPG, JPEG, GIF, WEBP up to 16MB</p>
+                                                <input type="file" id="combinedImageFile" class="d-none" accept="image/*" onchange="handleCombinedFileSelect(event)">
+                                            </div>
+                                            
+                                            <div id="combinedImagePreview" class="mt-3 text-center d-none">
+                                                <div class="card">
+                                                    <img id="combinedPreviewImg" class="card-img-top" style="max-height: 200px; object-fit: cover;">
+                                                    <div class="card-body">
+                                                        <p class="card-text small text-muted" id="combinedImageInfo"></p>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearCombinedImage()">
+                                                            <i class="bi bi-x"></i> Remove Image
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-primary btn-lg w-100" type="submit" id="combinedSearchBtn">
+                                            <i class="bi bi-search"></i> Search with Text + Image
+                                        </button>
+                                        
+                                        <div class="form-text mt-2">
+                                            <small><strong>Note:</strong> At least one field (text or image) is required for search.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <h6>How Hybrid Search Works</h6>
+                                        <div class="alert alert-success">
+                                            <h6><i class="bi bi-magic"></i> Best of Both Worlds</h6>
+                                            <ul class="mb-0 small">
+                                                <li><strong>Text Description:</strong> Helps find products matching your specific requirements</li>
+                                                <li><strong>Image Analysis:</strong> Finds visually similar products using AI</li>
+                                                <li><strong>Combined Results:</strong> More accurate and relevant product matches</li>
+                                                <li><strong>Smart Filtering:</strong> Text refines image search results</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <h6>Example Searches:</h6>
+                                        <div class="d-grid gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary text-start" onclick="loadCombinedExample('red sneakers', 'shoes')">
+                                                <strong>Text:</strong> "red sneakers" + <strong>Image:</strong> shoe photo
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary text-start" onclick="loadCombinedExample('wireless bluetooth', 'headphones')">
+                                                <strong>Text:</strong> "wireless bluetooth" + <strong>Image:</strong> headphones
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary text-start" onclick="loadCombinedExample('summer dress', 'clothing')">
+                                                <strong>Text:</strong> "summer dress" + <strong>Image:</strong> dress photo
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <h6>Pro Tips:</h6>
+                                            <ul class="small text-muted">
+                                                <li>Use descriptive text for features not visible in the image</li>
+                                                <li>Include color, material, or brand preferences in text</li>
+                                                <li>Upload clear, focused product images</li>
+                                                <li>Text can help filter results by price range or category</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="text-center d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Searching...</span>
+                </div>
+                <p class="mt-2">Searching products...</p>
+            </div>
+            
+            <!-- Search Results -->
+            <div id="searchResults" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">Search Results <span id="resultCount" class="badge bg-primary"></span></h3>
+                    
+                    <!-- Search Method Legend -->
+                    <div class="d-flex gap-3 align-items-center">
+                        <small class="text-muted me-2">Match type:</small>
+                        <div class="d-flex gap-2">
+                            <span class="similarity-badge similarity-badge-vector" style="position: static; font-size: 0.7rem; padding: 2px 6px;">
+                                <i class="bi bi-cpu me-1"></i>AI
+                            </span>
+                            <span class="similarity-badge similarity-badge-keyword" style="position: static; font-size: 0.7rem; padding: 2px 6px;">
+                                <i class="bi bi-search me-1"></i>Keyword
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row" id="resultsContainer">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <!-- No Results Message -->
+            <div id="noResults" class="alert alert-info d-none">
+                <i class="bi bi-info-circle"></i> No products found. Try a different search term or image.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Detail Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productModalBody">
+                <!-- Product details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

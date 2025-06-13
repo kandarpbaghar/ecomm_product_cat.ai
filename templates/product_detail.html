@@ -562,6 +562,32 @@
         color: #333;
     }
 
+    .cart-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .remove-btn {
+        width: 28px;
+        height: 28px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 12px;
+    }
+
+    .remove-btn:hover {
+        background: #c82333;
+    }
+
     .cart-total-label {
         font-size: 16px;
         font-weight: 600;
@@ -1024,25 +1050,33 @@ function showError() {
 function checkCartStatus() {
     if (typeof cartManager !== 'undefined' && currentProduct) {
         const cartItem = cartManager.getCartItem(productId);
-        updateCartButton(cartItem !== null);
+        updateCartButton(cartItem);
     }
 }
 
 // Update the add to cart button based on cart status
-function updateCartButton(isInCart) {
+function updateCartButton(cartItem) {
     const actionButtons = document.querySelector('.action-buttons');
     const quantitySelector = document.querySelector('.quantity-selector');
-    
-    if (isInCart) {
+
+    if (cartItem) {
         // Hide quantity selector when item is in cart
         quantitySelector.style.display = 'none';
-        
-        // Replace with remove from cart button
+
+        // Replace with quantity controls
         actionButtons.innerHTML = `
-            <button class="add-to-cart-btn" style="background: #dc3545;" onclick="removeFromCart()">
-                <i class="fas fa-trash"></i>
-                <span>Remove from Cart</span>
-            </button>
+            <div class="cart-controls">
+                <button class="quantity-btn minus" onclick="decreaseQuantity(${productId})">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <span class="quantity-display" id="detail-quantity">${cartItem.quantity}</span>
+                <button class="quantity-btn plus" onclick="increaseQuantity(${productId})">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="remove-btn" onclick="removeFromCart()" title="Remove from cart">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
             <button class="wishlist-btn" onclick="toggleWishlist()">
                 <i class="far fa-heart"></i>
             </button>
@@ -1050,7 +1084,7 @@ function updateCartButton(isInCart) {
     } else {
         // Show quantity selector
         quantitySelector.style.display = 'flex';
-        
+
         // Show add to cart button
         actionButtons.innerHTML = `
             <button class="add-to-cart-btn" onclick="addToCart()">
@@ -1083,7 +1117,7 @@ function addToCart() {
             cartManager.addToCart(productId, productData);
         }
         
-        updateCartButton(true);
+        updateCartButton(cartManager.getCartItem(productId));
         updateCartUI();
     }
 }
@@ -1092,7 +1126,7 @@ function addToCart() {
 function removeFromCart() {
     if (typeof cartManager !== 'undefined') {
         cartManager.removeFromCart(productId);
-        updateCartButton(false);
+        updateCartButton(null);
         updateCartUI();
     }
 }

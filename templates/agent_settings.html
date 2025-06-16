@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Agent Settings{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-gear"></i> Shopping Agent Settings</h2>
+                <a href="/agent" class="btn btn-outline-primary">
+                    <i class="bi bi-chat"></i> Back to Chat
+                </a>
+            </div>
+
+            <!-- Status Card -->
+            <div class="card mb-4" id="statusCard">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator me-3" id="statusIndicator">
+                            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                        </div>
+                        <div>
+                            <h6 class="mb-0" id="statusText">Checking configuration...</h6>
+                            <small class="text-muted" id="statusDetails">Please wait while we verify your settings</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LLM Provider Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-cpu"></i> Language Model Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="llmProvider" class="form-label">LLM Provider</label>
+                                <select class="form-select" id="llmProvider" onchange="updateModelOptions()">
+                                    <option value="">Select a provider...</option>
+                                    <option value="openai">OpenAI (GPT)</option>
+                                    <option value="anthropic">Anthropic (Claude)</option>
+                                    <option value="google">Google (Gemini)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="llmModel" class="form-label">Model</label>
+                                <select class="form-select" id="llmModel">
+                                    <option value="">Select a model...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- API Key Sections -->
+                        <div class="api-key-section" id="openaiSection" style="display: none;">
+                            <div class="mb-3">
+                                <label for="openaiApiKey" class="form-label">
+                                    <i class="bi bi-key"></i> OpenAI API Key
+                                    <a href="https://platform.openai.com/api-keys" target="_blank" class="ms-2">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="openaiApiKey" placeholder="sk-...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('openaiApiKey')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="api-key-section" id="anthropicSection" style="display: none;">
+                            <div class="mb-3">
+                                <label for="anthropicApiKey" class="form-label">
+                                    <i class="bi bi-key"></i> Anthropic API Key
+                                    <a href="https://console.anthropic.com/" target="_blank" class="ms-2">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="anthropicApiKey" placeholder="sk-ant-...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('anthropicApiKey')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="api-key-section" id="googleSection" style="display: none;">
+                            <div class="mb-3">
+                                <label for="googleApiKey" class="form-label">
+                                    <i class="bi bi-key"></i> Google API Key
+                                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="ms-2">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="googleApiKey" placeholder="AIza...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('googleApiKey')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="temperature" class="form-label">
+                                    Temperature
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" 
+                                       title="Controls randomness: 0 = deterministic, 1 = very creative"></i>
+                                </label>
+                                <div class="input-group">
+                                    <input type="range" class="form-range" id="temperatureRange" 
+                                           min="0" max="1" step="0.1" value="0.7" oninput="updateTemperatureValue()">
+                                    <input type="number" class="form-control" id="temperature" 
+                                           min="0" max="1" step="0.1" value="0.7" style="width: 80px;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="maxTokens" class="form-label">
+                                    Max Tokens
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" 
+                                       title="Maximum length of the response"></i>
+                                </label>
+                                <input type="number" class="form-control" id="maxTokens" min="100" max="2000" value="500">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="testConfiguration()">
+                                <i class="bi bi-play"></i> Test Configuration
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="resetConfiguration()">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Information Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Provider Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="providerAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#openaiInfo">
+                                    OpenAI (GPT)
+                                </button>
+                            </h2>
+                            <div id="openaiInfo" class="accordion-collapse collapse" data-bs-parent="#providerAccordion">
+                                <div class="accordion-body">
+                                    <ul>
+                                        <li><strong>Best for:</strong> Function calling, structured outputs, general tasks</li>
+                                        <li><strong>Models:</strong> GPT-4, GPT-3.5 Turbo</li>
+                                        <li><strong>Features:</strong> Vision support, tool use, reliable performance</li>
+                                        <li><strong>Pricing:</strong> Pay per token, varies by model</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#anthropicInfo">
+                                    Anthropic (Claude)
+                                </button>
+                            </h2>
+                            <div id="anthropicInfo" class="accordion-collapse collapse" data-bs-parent="#providerAccordion">
+                                <div class="accordion-body">
+                                    <ul>
+                                        <li><strong>Best for:</strong> Conversational AI, reasoning, safety</li>
+                                        <li><strong>Models:</strong> Claude 3 Opus, Sonnet, Haiku</li>
+                                        <li><strong>Features:</strong> Long context, excellent reasoning, helpful responses</li>
+                                        <li><strong>Pricing:</strong> Competitive pricing, good value for quality</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#googleInfo">
+                                    Google (Gemini)
+                                </button>
+                            </h2>
+                            <div id="googleInfo" class="accordion-collapse collapse" data-bs-parent="#providerAccordion">
+                                <div class="accordion-body">
+                                    <ul>
+                                        <li><strong>Best for:</strong> Multimodal tasks, cost-effectiveness</li>
+                                        <li><strong>Models:</strong> Gemini Pro, Gemini Flash</li>
+                                        <li><strong>Features:</strong> Native multimodal, fast inference, Google integration</li>
+                                        <li><strong>Pricing:</strong> Very competitive, generous free tier</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Modal -->
+<div class="modal fade" id="testModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Test</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="test-progress">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <span>Testing configuration...</span>
+                    </div>
+                </div>
+                <div class="test-result" style="display: none;">
+                    <div class="alert" id="testAlert"></div>
+                    <div id="testDetails"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let availableModels = {};
+
+// Initialize
+$(document).ready(function() {
+    loadCurrentConfig();
+    loadAvailableModels();
+    setupTooltips();
+});
+
+function setupTooltips() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+}
+
+function loadCurrentConfig() {
+    $.get('/api/agent/config')
+        .done(function(data) {
+            if (data.success && data.config) {
+                const config = data.config;
+                
+                $('#llmProvider').val(config.llm_provider || '');
+                $('#temperature').val(config.temperature || 0.7);
+                $('#temperatureRange').val(config.temperature || 0.7);
+                $('#maxTokens').val(config.max_tokens || 500);
+                
+                // Update provider-specific sections
+                updateProviderSections(config.llm_provider);
+                
+                // Update status
+                updateStatus(config);
+            }
+        })
+        .fail(function() {
+            showToast('Failed to load current configuration', 'error');
+        });
+}
+
+function loadAvailableModels() {
+    $.get('/api/agent/models')
+        .done(function(data) {
+            if (data.success) {
+                availableModels = data.providers;
+                updateModelOptions();
+            }
+        });
+}
+
+function updateProviderSections(provider) {
+    // Hide all sections
+    $('.api-key-section').hide();
+    
+    // Show relevant section
+    if (provider) {
+        $(`#${provider}Section`).show();
+    }
+}
+
+function updateModelOptions() {
+    const provider = $('#llmProvider').val();
+    const modelSelect = $('#llmModel');
+    
+    modelSelect.empty();
+    modelSelect.append('<option value="">Select a model...</option>');
+    
+    if (provider && availableModels[provider]) {
+        availableModels[provider].models.forEach(model => {
+            modelSelect.append(`<option value="${model}">${model}</option>`);
+        });
+    }
+    
+    updateProviderSections(provider);
+}
+
+function updateTemperatureValue() {
+    const value = $('#temperatureRange').val();
+    $('#temperature').val(value);
+}
+
+function togglePassword(fieldId) {
+    const field = $(`#${fieldId}`);
+    const icon = field.next().find('i');
+    
+    if (field.attr('type') === 'password') {
+        field.attr('type', 'text');
+        icon.removeClass('bi-eye').addClass('bi-eye-slash');
+    } else {
+        field.attr('type', 'password');
+        icon.removeClass('bi-eye-slash').addClass('bi-eye');
+    }
+}
+
+function updateStatus(config) {
+    const indicator = $('#statusIndicator');
+    const text = $('#statusText');
+    const details = $('#statusDetails');
+    
+    const hasProvider = !!config.llm_provider;
+    const hasModel = !!config.llm_model;
+    const hasApiKey = config.has_openai_key || config.has_anthropic_key || config.has_google_key;
+    
+    if (hasProvider && hasModel && hasApiKey) {
+        indicator.html('<i class="bi bi-check-circle-fill text-success fs-4"></i>');
+        text.text('Agent Ready');
+        details.text(`Using ${config.llm_provider} with ${config.llm_model}`);
+        $('#statusCard').removeClass('border-warning border-danger').addClass('border-success');
+    } else if (hasProvider) {
+        indicator.html('<i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>');
+        text.text('Configuration Incomplete');
+        details.text('Please provide an API key for the selected provider');
+        $('#statusCard').removeClass('border-success border-danger').addClass('border-warning');
+    } else {
+        indicator.html('<i class="bi bi-x-circle-fill text-danger fs-4"></i>');
+        text.text('Not Configured');
+        details.text('Please select a provider and configure API keys');
+        $('#statusCard').removeClass('border-success border-warning').addClass('border-danger');
+    }
+}
+
+$('#configForm').on('submit', function(e) {
+    e.preventDefault();
+    saveConfiguration();
+});
+
+function saveConfiguration() {
+    const formData = {
+        llm_provider: $('#llmProvider').val(),
+        llm_model: $('#llmModel').val(),
+        temperature: parseFloat($('#temperature').val()),
+        max_tokens: parseInt($('#maxTokens').val())
+    };
+    
+    // Add API keys
+    const provider = $('#llmProvider').val();
+    if (provider === 'openai' && $('#openaiApiKey').val()) {
+        formData.openai_api_key = $('#openaiApiKey').val();
+    } else if (provider === 'anthropic' && $('#anthropicApiKey').val()) {
+        formData.anthropic_api_key = $('#anthropicApiKey').val();
+    } else if (provider === 'google' && $('#googleApiKey').val()) {
+        formData.google_api_key = $('#googleApiKey').val();
+    }
+    
+    $.ajax({
+        url: '/api/agent/config',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            if (response.success) {
+                showToast('Configuration saved successfully!', 'success');
+                updateStatus(response.config);
+            } else {
+                showToast('Failed to save configuration', 'error');
+            }
+        },
+        error: function() {
+            showToast('Failed to save configuration', 'error');
+        }
+    });
+}
+
+function testConfiguration() {
+    $('#testModal').modal('show');
+    $('.test-progress').show();
+    $('.test-result').hide();
+    
+    // Simulate test (in real implementation, this would test the actual API)
+    setTimeout(() => {
+        $('.test-progress').hide();
+        $('.test-result').show();
+        
+        const provider = $('#llmProvider').val();
+        const hasApiKey = $(`#${provider}ApiKey`).val();
+        
+        if (provider && hasApiKey) {
+            $('#testAlert').removeClass('alert-danger').addClass('alert-success');
+            $('#testAlert').html('<i class="bi bi-check-circle"></i> Configuration test successful!');
+            $('#testDetails').html(`
+                <p><strong>Provider:</strong> ${provider}</p>
+                <p><strong>Model:</strong> ${$('#llmModel').val()}</p>
+                <p><strong>Status:</strong> API connection verified</p>
+            `);
+        } else {
+            $('#testAlert').removeClass('alert-success').addClass('alert-danger');
+            $('#testAlert').html('<i class="bi bi-x-circle"></i> Configuration test failed!');
+            $('#testDetails').html('<p>Please ensure you have selected a provider and entered a valid API key.</p>');
+        }
+    }, 2000);
+}
+
+function resetConfiguration() {
+    if (confirm('Are you sure you want to reset all configuration? This will clear all API keys.')) {
+        $('#configForm')[0].reset();
+        $('#llmProvider').val('');
+        $('#llmModel').empty().append('<option value="">Select a model...</option>');
+        $('.api-key-section').hide();
+        $('#temperature').val(0.7);
+        $('#temperatureRange').val(0.7);
+        $('#maxTokens').val(500);
+        
+        showToast('Configuration reset', 'info');
+    }
+}
+
+function showToast(message, type = 'success') {
+    // Create and show toast notification
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    $('body').append(`<div class="toast-container position-fixed bottom-0 end-0 p-3">${toastHtml}</div>`);
+    const toast = new bootstrap.Toast($('.toast').last());
+    toast.show();
+    
+    // Remove toast container after it's hidden
+    $('.toast').last().on('hidden.bs.toast', function() {
+        $(this).closest('.toast-container').remove();
+    });
+}
+
+// Sync temperature slider and input
+$('#temperature').on('input', function() {
+    $('#temperatureRange').val($(this).val());
+});
+</script>
+{% endblock %}

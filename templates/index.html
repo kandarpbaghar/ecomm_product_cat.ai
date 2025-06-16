@@ -25,6 +25,23 @@
             </ul>
         </div>
         
+        <!-- AI Assistant Section -->
+        <div class="mb-4">
+            <h5>AI Shopping Assistant</h5>
+            <ul class="list-unstyled ms-3">
+                <li class="mb-2">
+                    <a href="/agent" class="text-white text-decoration-none" target="_blank">
+                        <i class="bi bi-robot"></i> Chat with AI Assistant
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="/agent/settings" class="text-white text-decoration-none" target="_blank">
+                        <i class="bi bi-gear"></i> AI Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+
         <!-- Search Section -->
         <div class="mb-4">
             <h5>Search & Browse</h5>
@@ -278,8 +295,16 @@
                     <input type="text" class="form-control" id="apiPath">
                 </div>
                 <div class="mb-3">
-                    <label for="apiBody" class="form-label">Request Body (JSON)</label>
-                    <textarea class="form-control" id="apiBody" rows="5"></textarea>
+                    <label for="apiBody" class="form-label">Request Body (JSON/FormData)</label>
+                    <textarea class="form-control" id="apiBody" rows="5" placeholder="For search API with FormData, use format:
+search_type: text
+query: your search query
+filters: {&quot;vendors&quot;: [&quot;Nike&quot;]}"></textarea>
+                </div>
+                <div class="mb-3" id="apiImageSection" style="display: none;">
+                    <label for="apiImage" class="form-label">Image File (for image search)</label>
+                    <input type="file" class="form-control" id="apiImage" accept="image/*">
+                    <small class="form-text text-muted">Upload an image when testing image or combined search</small>
                 </div>
                 <button class="btn btn-primary" onclick="testAPI()">Test API</button>
                 <div class="mt-3">

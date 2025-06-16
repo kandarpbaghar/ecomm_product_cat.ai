@@ -6,7 +6,10 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(curl:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:google.github.io)"
     ],
     "deny": []
   }

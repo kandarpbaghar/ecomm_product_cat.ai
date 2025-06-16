@@ -21,7 +21,52 @@ let filteredProducts = [];
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     initializeCatalog();
-    loadProducts();
+    
+    // Check for pending search from product detail page
+    const pendingSearch = sessionStorage.getItem('pendingSearch');
+    if (pendingSearch) {
+        const searchParams = JSON.parse(pendingSearch);
+        sessionStorage.removeItem('pendingSearch');
+        
+        // Set search text
+        if (searchParams.text) {
+            document.getElementById('search-text').value = searchParams.text;
+            searchQuery = searchParams.text;
+        }
+        
+        // Handle pending image
+        if (searchParams.hasImage) {
+            const pendingImageData = sessionStorage.getItem('pendingSearchImage');
+            if (pendingImageData) {
+                sessionStorage.removeItem('pendingSearchImage');
+                
+                // Convert base64 to blob
+                fetch(pendingImageData)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        // Create a File object
+                        const file = new File([blob], "search-image.jpg", { type: "image/jpeg" });
+                        
+                        // Set the search image
+                        searchImage = file;
+                        
+                        // Update preview
+                        document.getElementById('preview-img').src = pendingImageData;
+                        document.getElementById('image-preview').classList.add('show');
+                        
+                        // Perform the search
+                        performSearch();
+                    });
+            } else {
+                performSearch();
+            }
+        } else {
+            performSearch();
+        }
+    } else {
+        loadProducts();
+    }
+    
     setupEventListeners();
     loadCompanyLogo();
     initializeFilterToggle();

@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}AI Shopping Assistant{% endblock %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Chat Container -->
+        <div class="col-md-8 h-100 d-flex flex-column">
+            <div class="chat-header bg-primary text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">
+                            <i class="bi bi-robot"></i> Shopping Assistant
+                        </h4>
+                        <small class="opacity-75">Ask me anything about our products!</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-light btn-sm" onclick="clearChat()">
+                            <i class="bi bi-trash"></i> Clear Chat
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="exportChat()">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-messages flex-grow-1 p-3" id="chatMessages">
+                <div class="welcome-message text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-robot" style="font-size: 3rem; color: #007bff;"></i>
+                    </div>
+                    <h5>Welcome! I'm your AI Shopping Assistant</h5>
+                    <p class="text-muted">I can help you find products, answer questions, and provide recommendations.</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" onclick="sendMessage('I\'m looking for running shoes')">
+                            Find running shoes
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" onclick="sendMessage('Show me products under $50')">
+                            Products under $50
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" onclick="sendMessage('What\'s popular right now?')">
+                            What's popular?
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="chat-input border-top p-3">
+                <div class="row g-2">
+                    <div class="col">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="messageInput" 
+                                   placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleImageUpload()">
+                                <i class="bi bi-image"></i>
+                            </button>
+                            <button class="btn btn-primary" type="button" onclick="sendCurrentMessage()">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Image Upload Area (Hidden by default) -->
+                        <div class="image-upload-container mt-2" id="imageUploadContainer" style="display: none;">
+                            <div class="image-upload-area border border-2 border-dashed rounded p-3 text-center" 
+                                 onclick="document.getElementById('imageInput').click()">
+                                <div id="imageUploadText">
+                                    <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                    <p class="mb-0 text-muted">Click to upload an image or drag and drop</p>
+                                    <small class="text-muted">Supported formats: JPG, PNG, GIF (max 10MB)</small>
+                                </div>
+                                <div id="imagePreviewContainer" style="display: none;">
+                                    <img id="imagePreview" class="img-thumbnail" style="max-height: 150px;">
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                            <i class="bi bi-x"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Suggestions -->
+                <div class="suggestions mt-2" id="suggestions" style="display: none;">
+                    <small class="text-muted">Quick suggestions:</small>
+                    <div class="d-flex flex-wrap gap-1 mt-1" id="suggestionButtons">
+                        <!-- Suggestions will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4 bg-light border-start h-100">
+            <div class="p-3">
+                <h6>
+                    <i class="bi bi-clock-history"></i> Recent Products
+                </h6>
+                <div id="recentProducts" class="mt-3">
+                    <p class="text-muted text-center">Products you've viewed will appear here</p>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <div class="p-3">
+                <h6>
+                    <i class="bi bi-gear"></i> Quick Actions
+                </h6>
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendMessage('Show me your best deals')">
+                        <i class="bi bi-tag"></i> Best Deals
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendMessage('What are the newest products?')">
+                        <i class="bi bi-star"></i> New Arrivals
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendMessage('Help me find a gift')">
+                        <i class="bi bi-gift"></i> Gift Ideas
+                    </button>
+                    <a href="/agent/settings" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Thinking...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productModalBody">
+                <!-- Product details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+const sessionId = '{{ session_id }}';
+let currentImageData = null;
+let messageCount = 0;
+
+// Initialize
+$(document).ready(function() {
+    loadConversationHistory();
+    setupDragAndDrop();
+});
+
+// Message handling
+function handleKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendCurrentMessage();
+    }
+}
+
+function sendCurrentMessage() {
+    const message = $('#messageInput').val().trim();
+    if (message || currentImageData) {
+        sendMessage(message, currentImageData);
+        $('#messageInput').val('');
+        clearImage();
+    }
+}
+
+function sendMessage(message, imageData = null) {
+    if (!message.trim() && !imageData) return;
+    
+    // Add user message to chat
+    addMessageToChat('user', message, imageData);
+    
+    // Hide welcome message
+    $('.welcome-message').hide();
+    
+    // Show loading
+    console.log('Showing loading modal...');
+    $('#loadingModal').modal('show');
+    
+    // Send to API
+    $.ajax({
+        url: '/api/agent/chat',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            message: message,
+            session_id: sessionId,
+            image: imageData
+        }),
+        success: function(response) {
+            console.log('Response received:', response);
+            console.log('Attempting to hide modal...');
+            
+            // Force close modal immediately and with timeout
+            function forceCloseModal() {
+                $('#loadingModal').modal('hide');
+                $('#loadingModal').removeClass('show');
+                $('#loadingModal').hide();
+                $('#loadingModal').css('display', 'none !important');
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+                $('body').css('overflow', 'auto');
+                $('body').css('padding-right', '');
+            }
+            
+            forceCloseModal();
+            setTimeout(forceCloseModal, 100);
+            setTimeout(forceCloseModal, 500);
+            
+            console.log('Modal should be hidden now');
+            
+            if (response.success) {
+                // Add assistant response
+                addMessageToChat('assistant', response.response, null, response.products);
+                
+                // Update suggestions
+                updateSuggestions(response.suggestions || []);
+                
+                // Track products shown
+                if (response.products && response.products.length > 0) {
+                    updateRecentProducts(response.products);
+                }
+            } else {
+                addMessageToChat('assistant', response.response || 'Sorry, I encountered an error.');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.log('Error occurred, hiding modal...');
+            $('#loadingModal').modal('hide');
+            $('#loadingModal').removeClass('show');
+            $('#loadingModal').hide();
+            $('#loadingModal').css('display', 'none');
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+            $('body').css('overflow', 'auto');
+            
+            let errorMsg = 'Sorry, I\'m having trouble connecting. Please try again.';
+            
+            // Try to get specific error message from response
+            if (xhr.responseJSON) {
+                if (xhr.responseJSON.error) {
+                    errorMsg = `Error: ${xhr.responseJSON.error}`;
+                } else if (xhr.responseJSON.response) {
+                    errorMsg = xhr.responseJSON.response;
+                }
+            }
+            
+            addMessageToChat('assistant', errorMsg);
+        }
+    });
+}
+
+function addMessageToChat(role, content, imageData = null, products = null) {
+    const chatMessages = $('#chatMessages');
+    const timestamp = new Date().toLocaleTimeString();
+    messageCount++;
+    
+    let messageHtml = '';
+    
+    if (role === 'user') {
+        messageHtml = `
+            <div class="message user-message mb-3">
+                <div class="d-flex justify-content-end">
+                    <div class="message-content bg-primary text-white rounded p-2" style="max-width: 70%;">
+                        ${imageData ? `<img src="data:image/jpeg;base64,${imageData}" class="img-fluid rounded mb-2" style="max-height: 200px;">` : ''}
+                        <div>${content}</div>
+                        <small class="opacity-75">${timestamp}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        messageHtml = `
+            <div class="message assistant-message mb-3">
+                <div class="d-flex">
+                    <div class="me-2">
+                        <div class="avatar bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi bi-robot text-white"></i>
+                        </div>
+                    </div>
+                    <div class="message-content bg-light rounded p-2" style="max-width: 70%;">
+                        <div>${formatMessage(content)}</div>
+                        ${products ? formatProducts(products) : ''}
+                        <small class="text-muted">${timestamp}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    chatMessages.append(messageHtml);
+    chatMessages.scrollTop(chatMessages[0].scrollHeight);
+}
+
+function formatMessage(content) {
+    // Convert markdown-like formatting to HTML
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+}
+
+function formatProducts(products) {
+    if (!products || products.length === 0) return '';
+    
+    let html = '<div class="products-container mt-3">';
+    html += '<h6 class="mb-2">Products Found:</h6>';
+    html += '<div class="row g-2">';
+    
+    products.slice(0, 4).forEach((product, index) => {
+        const imageUrl = product.images && product.images.length > 0 ? product.images[0].url : '/static/images/placeholder.svg';
+        const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'Price N/A';
+        
+        html += `
+            <div class="col-6">
+                <div class="card product-card h-100" onclick="showProductDetails(${product.id})" style="cursor: pointer;">
+                    <img src="${imageUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <h6 class="card-title small mb-1">${product.title}</h6>
+                        <p class="card-text text-primary fw-bold mb-0">${price}</p>
+                        <small class="text-muted">${product.vendor || ''}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    if (products.length > 4) {
+        html += `<p class="text-muted small mt-2">And ${products.length - 4} more products...</p>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Image handling
+function toggleImageUpload() {
+    const container = $('#imageUploadContainer');
+    container.toggle();
+}
+
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            alert('File size too large. Please select an image under 10MB.');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentImageData = e.target.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+            showImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function showImagePreview(dataUrl) {
+    $('#imagePreview').attr('src', dataUrl);
+    $('#imageUploadText').hide();
+    $('#imagePreviewContainer').show();
+}
+
+function clearImage() {
+    currentImageData = null;
+    $('#imageInput').val('');
+    $('#imagePreview').attr('src', '');
+    $('#imageUploadText').show();
+    $('#imagePreviewContainer').hide();
+    $('#imageUploadContainer').hide();
+}
+
+function setupDragAndDrop() {
+    const uploadArea = $('.image-upload-area');
+    
+    uploadArea.on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('drag-over');
+    });
+    
+    uploadArea.on('dragleave', function(e) {
+        e.preventDefault();
+        $(this).removeClass('drag-over');
+    });
+    
+    uploadArea.on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('drag-over');
+        
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith('image/')) {
+                $('#imageInput')[0].files = files;
+                handleImageSelect({target: {files: files}});
+            }
+        }
+    });
+}
+
+// Suggestions
+function updateSuggestions(suggestions) {
+    if (suggestions.length === 0) {
+        $('#suggestions').hide();
+        return;
+    }
+    
+    const container = $('#suggestionButtons');
+    container.empty();
+    
+    suggestions.forEach(suggestion => {
+        container.append(`
+            <button class="btn btn-outline-primary btn-sm suggestion-btn" onclick="sendMessage('${suggestion}')">
+                ${suggestion}
+            </button>
+        `);
+    });
+    
+    $('#suggestions').show();
+}
+
+// Recent products
+function updateRecentProducts(products) {
+    const container = $('#recentProducts');
+    container.empty();
+    
+    products.slice(0, 3).forEach(product => {
+        const imageUrl = product.images && product.images.length > 0 ? product.images[0].url : '/static/images/placeholder.svg';
+        const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'N/A';
+        
+        container.append(`
+            <div class="d-flex mb-2 product-item" onclick="showProductDetails(${product.id})" style="cursor: pointer;">
+                <img src="${imageUrl}" class="rounded me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                <div class="flex-grow-1">
+                    <div class="fw-bold small">${product.title}</div>
+                    <div class="text-primary small">${price}</div>
+                </div>
+            </div>
+        `);
+    });
+}
+
+// Product details
+function showProductDetails(productId) {
+    // Fetch and show product details in modal
+    $.get(`/api/skus/${productId}`)
+        .done(function(product) {
+            $('#productModalTitle').text(product.title);
+            
+            const imageUrl = product.images && product.images.length > 0 ? product.images[0].url : '/static/images/placeholder.svg';
+            const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'Price N/A';
+            const stock = product.quantity > 0 ? `${product.quantity} in stock` : 'Out of stock';
+            
+            $('#productModalBody').html(`
+                <div class="row">
+                    <div class="col-md-6">
+                        <img src="${imageUrl}" class="img-fluid rounded">
+                    </div>
+                    <div class="col-md-6">
+                        <h4>${product.title}</h4>
+                        <p class="text-primary fs-4 fw-bold">${price}</p>
+                        <p><strong>Vendor:</strong> ${product.vendor || 'N/A'}</p>
+                        <p><strong>Stock:</strong> ${stock}</p>
+                        <p><strong>Description:</strong></p>
+                        <p>${product.description || 'No description available'}</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="askAboutProduct(${productId})">Ask about this product</button>
+                            <button class="btn btn-outline-primary" onclick="findSimilar(${productId})">Find similar products</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            $('#productModal').modal('show');
+        })
+        .fail(function() {
+            alert('Failed to load product details');
+        });
+}
+
+function askAboutProduct(productId) {
+    $('#productModal').modal('hide');
+    sendMessage(`Tell me more about product ID ${productId}`);
+}
+
+function findSimilar(productId) {
+    $('#productModal').modal('hide');
+    sendMessage(`Show me products similar to product ID ${productId}`);
+}
+
+// Chat management
+function clearChat() {
+    if (confirm('Are you sure you want to clear the chat history?')) {
+        $.ajax({
+            url: `/api/agent/history/${sessionId}`,
+            method: 'DELETE',
+            success: function() {
+                $('#chatMessages').empty();
+                $('.welcome-message').show();
+                $('#recentProducts').html('<p class="text-muted text-center">Products you\'ve viewed will appear here</p>');
+                $('#suggestions').hide();
+                messageCount = 0;
+            }
+        });
+    }
+}
+
+function exportChat() {
+    $.get(`/api/agent/history/${sessionId}`)
+        .done(function(data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_history_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+}
+
+function loadConversationHistory() {
+    $.get(`/api/agent/history/${sessionId}`)
+        .done(function(data) {
+            if (data.messages && data.messages.length > 0) {
+                $('.welcome-message').hide();
+                data.messages.forEach(msg => {
+                    if (msg.role !== 'system') {
+                        addMessageToChat(msg.role, msg.content);
+                    }
+                });
+            }
+        });
+}
+</script>
+{% endblock %}

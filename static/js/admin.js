@@ -385,8 +385,24 @@ async function deleteSKU(id) {
 // API Documentation
 function showAPIDoc(endpoint, methods) {
     $('#apiModalTitle').text(`API Documentation: ${endpoint}`);
-    $('#apiPath').val(endpoint);
+    // Remove /api prefix if it exists since API_BASE already includes it
+    const cleanPath = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
+    $('#apiPath').val(cleanPath);
     $('#apiMethod').val(methods[0]);
+    
+    // Show/hide image section for search endpoint
+    if (endpoint === '/api/search') {
+        $('#apiImageSection').show();
+        // Listen for changes in the apiBody to detect search type
+        $('#apiBody').off('input').on('input', function() {
+            const body = $(this).val();
+            if (body.includes('search_type: image') || body.includes('search_type: text_image')) {
+                $('#apiImageSection').show();
+            }
+        });
+    } else {
+        $('#apiImageSection').hide();
+    }
     
     const docContent = $('#apiDocContent');
     docContent.html(`
@@ -442,9 +458,46 @@ function generateAPIDocumentation(endpoint, methods) {
         },
         '/api/search': {
             POST: {
-                description: 'Search products by text or image',
-                body: 'FormData: type=text|image, query=string (for text), image=file (for image)',
-                response: '{ results: [...] }'
+                description: 'Search products by text or image with optional catalog filters',
+                body: 'FormData: search_type=text|image|text_image, query=string (for text), image=file (for image), filters=JSON (optional)',
+                parameters: {
+                    search_type: 'text, image, or text_image (combined search)',
+                    query: 'Search query text (required for text search)',
+                    image: 'Image file (required for image search)',
+                    filters: 'JSON object with catalog filters (optional)'
+                },
+                sampleData: {
+                    text: {
+                        search_type: 'text',
+                        query: 'blue shirt',
+                        filters: JSON.stringify({
+                            categories: ['1', '2'],
+                            vendors: ['Nike', 'Adidas'],
+                            productTypes: ['Clothing'],
+                            minPrice: 10,
+                            maxPrice: 100,
+                            inStock: true,
+                            outOfStock: false
+                        }, null, 2)
+                    },
+                    image: {
+                        search_type: 'image',
+                        filters: JSON.stringify({
+                            categories: ['3'],
+                            minPrice: 50
+                        }, null, 2)
+                    },
+                    combined: {
+                        search_type: 'text_image',
+                        query: 'running shoes',
+                        filters: JSON.stringify({
+                            vendors: ['Nike'],
+                            minPrice: 80,
+                            maxPrice: 200
+                        }, null, 2)
+                    }
+                },
+                response: '{ results: [{ product_id, title, description, price, image_url, vendor, product_type, _additional: { distance }, _source }] }'
             }
         },
         '/api/sync/shopify': {
@@ -464,9 +517,16 @@ function generateAPIDocumentation(endpoint, methods) {
             <div class="api-endpoint">
                 <h6>${method}</h6>
                 ${docInfo.description ? `<p>${docInfo.description}</p>` : ''}
-                ${docInfo.parameters ? `<p><strong>Parameters:</strong> ${docInfo.parameters}</p>` : ''}
+                ${docInfo.parameters ? (
+                    typeof docInfo.parameters === 'object' ? 
+                    `<p><strong>Parameters:</strong></p><ul>${Object.entries(docInfo.parameters).map(([key, value]) => 
+                        `<li><strong>${key}:</strong> ${value}</li>`
+                    ).join('')}</ul>` :
+                    `<p><strong>Parameters:</strong> ${docInfo.parameters}</p>`
+                ) : ''}
                 ${docInfo.body ? `<p><strong>Request Body:</strong> <code>${docInfo.body}</code></p>` : ''}
                 ${docInfo.response ? `<p><strong>Response:</strong> <code>${docInfo.response}</code></p>` : ''}
+                ${docInfo.sampleData ? generateSampleDataSection(endpoint, method, docInfo.sampleData) : ''}
             </div>
         `;
     });
@@ -475,19 +535,154 @@ function generateAPIDocumentation(endpoint, methods) {
     return html;
 }
 
+function generateSampleDataSection(endpoint, method, sampleData) {
+    let html = '<div class="mt-3"><p><strong>Sample Data:</strong></p>';
+    
+    Object.entries(sampleData).forEach(([key, sample]) => {
+        html += `
+            <div class="mb-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="fillSampleData('${endpoint}', '${method}', '${key}')">
+                    Use ${key} example
+                </button>
+                ${key === 'image' ? '<small class="ms-2">(You\'ll need to select an image file)</small>' : ''}
+                ${key === 'combined' ? '<small class="ms-2">(Select both text and image)</small>' : ''}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function fillSampleData(endpoint, method, sampleKey) {
+    const docs = {
+        '/api/search': {
+            POST: {
+                sampleData: {
+                    text: {
+                        search_type: 'text',
+                        query: 'blue shirt',
+                        filters: JSON.stringify({
+                            categories: ['1', '2'],
+                            vendors: ['Nike', 'Adidas'],
+                            productTypes: ['Clothing'],
+                            minPrice: 10,
+                            maxPrice: 100,
+                            inStock: true,
+                            outOfStock: false
+                        }, null, 2)
+                    },
+                    image: {
+                        search_type: 'image',
+                        filters: JSON.stringify({
+                            categories: ['3'],
+                            minPrice: 50
+                        }, null, 2)
+                    },
+                    combined: {
+                        search_type: 'text_image',
+                        query: 'running shoes',
+                        filters: JSON.stringify({
+                            vendors: ['Nike'],
+                            minPrice: 80,
+                            maxPrice: 200
+                        }, null, 2)
+                    }
+                }
+            }
+        }
+    };
+    
+    const sample = docs[endpoint]?.[method]?.sampleData?.[sampleKey];
+    if (sample && endpoint === '/api/search') {
+        // For search endpoint, we need to show FormData format
+        let formDataStr = 'FormData:\n';
+        Object.entries(sample).forEach(([key, value]) => {
+            if (key === 'filters') {
+                // For filters, show as compact JSON on single line
+                const filterObj = JSON.parse(value);
+                formDataStr += `${key}: ${JSON.stringify(filterObj)}\n`;
+            } else {
+                formDataStr += `${key}: ${value}\n`;
+            }
+        });
+        $('#apiBody').val(formDataStr.trim());
+    }
+}
+
 async function testAPI() {
     const method = $('#apiMethod').val();
     const path = $('#apiPath').val();
     const body = $('#apiBody').val();
     
     try {
-        let data = null;
-        if (body && (method === 'POST' || method === 'PUT')) {
-            data = JSON.parse(body);
+        // Special handling for search endpoint
+        if (path === '/search' && method === 'POST') {
+            const formData = new FormData();
+            
+            // Parse FormData format
+            const lines = body.split('\n').filter(line => line.trim());
+            lines.forEach(line => {
+                if (line.startsWith('FormData:')) return;
+                
+                const colonIndex = line.indexOf(':');
+                if (colonIndex > -1) {
+                    const key = line.substring(0, colonIndex).trim();
+                    let value = line.substring(colonIndex + 1).trim();
+                    
+                    // Special handling for filters - ensure it's properly formatted JSON
+                    if (key === 'filters' && value.startsWith('{')) {
+                        try {
+                            // Parse and re-stringify to ensure valid JSON
+                            const parsed = JSON.parse(value);
+                            value = JSON.stringify(parsed);
+                        } catch (e) {
+                            console.error('Invalid JSON in filters:', e);
+                        }
+                    }
+                    
+                    formData.append(key, value);
+                    console.log(`FormData: ${key} = ${value}`); // Debug log
+                }
+            });
+            
+            // Add image if selected
+            const imageInput = document.getElementById('apiImage');
+            if (imageInput && imageInput.files.length > 0) {
+                formData.append('image', imageInput.files[0]);
+            }
+            
+            // Make the request
+            const url = `${API_BASE}${path}`;
+            console.log(`Making request to: ${url}`); // Debug log
+            const response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+            
+            // Check content type
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON response but got ${contentType}. Response: ${text.substring(0, 200)}...`);
+            }
+            
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'API request failed');
+            }
+            
+            $('#apiResponse').text(JSON.stringify(result, null, 2));
+        } else {
+            // Regular JSON API call
+            let data = null;
+            if (body && (method === 'POST' || method === 'PUT')) {
+                data = JSON.parse(body);
+            }
+            
+            const result = await apiCall(path, method, data);
+            $('#apiResponse').text(JSON.stringify(result, null, 2));
         }
-        
-        const result = await apiCall(path, method, data);
-        $('#apiResponse').text(JSON.stringify(result, null, 2));
     } catch (error) {
         $('#apiResponse').text(`Error: ${error.message}`);
     }

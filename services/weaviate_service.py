@@ -100,6 +100,7 @@ class WeaviateService:
             print(f"[WEAVIATE] Falling back to embedded Weaviate")
             # Use embedded Weaviate for development
             try:
+                from weaviate.embedded import EmbeddedOptions
                 self.client = weaviate.Client(
                     embedded_options=EmbeddedOptions()
                 )

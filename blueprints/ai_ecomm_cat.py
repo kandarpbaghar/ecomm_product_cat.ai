@@ -412,7 +412,8 @@ class SearchResource(Resource):
         try:
             import json
             catalog_filters = json.loads(filters_json) if filters_json else {}
-        except:
+        except Exception as e:
+            print(f"Error parsing filters: {e}, filters_json: {filters_json}")
             catalog_filters = {}
         
         def apply_catalog_filters(search_results, filters):

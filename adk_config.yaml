@@ -1,0 +1,33 @@
+name: shopping_assistant
+description: AI Shopping Assistant for E-commerce Product Search
+entry_point: adk_shopping_agent:agent
+
+# Model configuration
+model:
+  provider: google
+  name: gemini-2.0-flash-exp
+  temperature: 0.7
+  max_tokens: 1000
+
+# Authentication
+auth:
+  google_api_key: ${GOOGLE_API_KEY}
+
+# Tools configuration
+tools:
+  - search_products
+  - search_by_image
+  - filter_by_criteria
+  - get_product_info
+  - find_similar_items
+
+# Session configuration
+session:
+  type: memory
+  persist: false
+
+# Web UI configuration
+web_ui:
+  title: "Shopping Assistant"
+  description: "AI-powered product search and recommendations"
+  port: 8080

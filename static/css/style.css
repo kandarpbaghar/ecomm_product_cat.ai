@@ -3,6 +3,132 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Shopping Agent Styles */
+.chat-messages {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    background-color: #f8f9fa;
+}
+
+.message {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-message .message-content {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+}
+
+.assistant-message .message-content {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.suggestion-btn {
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.875rem;
+}
+
+.image-upload-area {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.image-upload-area:hover {
+    background-color: #e9ecef;
+    border-color: #007bff !important;
+}
+
+.image-upload-area.drag-over {
+    background-color: #e3f2fd;
+    border-color: #2196f3 !important;
+    transform: scale(1.02);
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+}
+
+.status-indicator {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.api-key-section {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+/* API Documentation Styles */
+.api-method {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin: 0 2px;
+}
+
+.api-method.get {
+    background-color: #28a745;
+    color: white;
+}
+
+.api-method.post {
+    background-color: #007bff;
+    color: white;
+}
+
+.api-method.put {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.api-method.delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.api-endpoint {
+    background-color: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.api-endpoint h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.api-endpoint code {
+    background-color: #e9ecef;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.875rem;
+}
+
 /* Navigation Panel */
 .bg-dark {
     background-color: #1a1a1a !important;

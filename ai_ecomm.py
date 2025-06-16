@@ -17,13 +17,15 @@ def create_app(config_class=Config):
     
     # Import models and create tables
     with app.app_context():
-        from models import Category, SKU, SKUImage, SKUVariant, SyncLog
+        from models import Category, SKU, SKUImage, SKUVariant, SyncLog, AgentConfig, AgentConversation, AgentProductInteraction, AgentAnalytics
         from models.sku import ProductOption
         db.create_all()
     
     # Register blueprints
     from blueprints.ai_ecomm_cat import ai_ecomm_cat_bp
+    from blueprints.shopping_agent_bp import shopping_agent_bp
     app.register_blueprint(ai_ecomm_cat_bp, url_prefix='/api')
+    app.register_blueprint(shopping_agent_bp)
     
     # Routes
     @app.route('/')

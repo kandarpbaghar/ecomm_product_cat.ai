@@ -2,6 +2,391 @@
 
 {% block title %}AI Shopping Assistant{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    .product-card {
+        transition: transform 0.2s;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    /* Product Actions - Match catalog exactly */
+    .product-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+    }
+    
+    /* Ensure chat product styles match catalog */
+    .products-container .product-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+    }
+    
+    .products-container .cart-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+    
+    .products-container .quantity-btn {
+        width: 32px;
+        height: 32px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 16px;
+        font-weight: bold;
+        color: #666;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .products-container .quantity-btn:hover {
+        background: #f5f5f5;
+        border-color: #007bff;
+        color: #007bff;
+    }
+    
+    .products-container .quantity-display {
+        min-width: 40px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .products-container .remove-btn {
+        width: 32px;
+        height: 32px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 16px;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .products-container .remove-btn:hover {
+        background: #c82333;
+    }
+    
+    .products-container .quick-view-btn {
+        width: 40px;
+        height: 40px;
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        font-size: 16px;
+        padding: 0;
+        line-height: 1;
+        color: #6c757d;
+    }
+    
+    .products-container .quick-view-btn:hover {
+        background: #e9ecef;
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    /* Add to Cart Button - Match catalog exactly */
+    .products-container .add-to-cart-btn {
+        flex: 1;
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .products-container .add-to-cart-btn:hover {
+        background: #218838;
+    }
+    
+    .product-card .add-to-cart-btn,
+    #productModal .add-to-cart-btn {
+        flex: 1;
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .product-card .add-to-cart-btn:hover,
+    #productModal .add-to-cart-btn:hover {
+        background: #218838;
+    }
+
+    .add-to-cart-btn .btn-text {
+        display: inline;
+    }
+
+    /* Max width for list view */
+    .products-list .add-to-cart-btn {
+        max-width: 150px;
+    }
+
+    /* Cart Controls - Match catalog exactly */
+    .cart-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .quantity-btn {
+        width: 32px;
+        height: 32px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .quantity-btn:hover {
+        background: #f5f5f5;
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .quantity-display {
+        min-width: 40px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .remove-btn {
+        width: 32px;
+        height: 32px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .remove-btn:hover {
+        background: #c82333;
+    }
+
+    /* Quick View Button - Match catalog exactly */
+    .quick-view-btn {
+        width: 40px;
+        height: 40px;
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .quick-view-btn:hover {
+        background: #e9ecef;
+        border-color: #007bff;
+        color: #007bff;
+    }
+    
+    /* Font Awesome Icons Visibility */
+    .products-container .fas,
+    .product-card .fas,
+    #productModal .fas {
+        display: inline-block !important;
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 900 !important;
+        font-style: normal !important;
+        font-variant: normal !important;
+        text-rendering: auto !important;
+        line-height: 1 !important;
+    }
+    
+    .products-container .fa-minus::before,
+    .product-card .fa-minus::before,
+    #productModal .fa-minus::before {
+        content: "\f068" !important;
+    }
+    
+    .products-container .fa-plus::before,
+    .product-card .fa-plus::before,
+    #productModal .fa-plus::before {
+        content: "\f067" !important;
+    }
+    
+    .products-container .fa-trash::before,
+    .product-card .fa-trash::before,
+    #productModal .fa-trash::before {
+        content: "\f2ed" !important;
+    }
+    
+    .products-container .fa-shopping-cart::before,
+    .product-card .fa-shopping-cart::before,
+    #productModal .fa-shopping-cart::before {
+        content: "\f07a" !important;
+    }
+    
+    .products-container .fa-eye::before,
+    .product-card .fa-eye::before,
+    #productModal .fa-eye::before {
+        content: "\f06e" !important;
+    }
+    
+    /* Product Modal Styles */
+    #productModal .modal-dialog {
+        max-width: 1200px;
+    }
+    
+    #productModal .modal-content {
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    #productModal .modal-header {
+        position: absolute;
+        right: 0;
+        top: 0;
+        z-index: 10;
+        background: transparent;
+    }
+    
+    #productModal .btn-close {
+        background-color: white;
+        opacity: 0.8;
+        border-radius: 50%;
+        padding: 0.5rem;
+        margin: 0.5rem;
+    }
+    
+    #productModal .btn-close:hover {
+        opacity: 1;
+    }
+    
+    .thumbnail {
+        transition: border-color 0.3s;
+    }
+    
+    .thumbnail:hover {
+        border-color: #0056b3 !important;
+    }
+    
+    .product-details h2 {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .product-details h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    /* Modal specific overrides - maintain consistency */
+    #productModal .add-to-cart-btn.btn-lg {
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+    
+    #productModal .cart-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    #productModal .quantity-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    #productModal .quantity-display {
+        min-width: 50px;
+        font-size: 18px;
+    }
+    
+    #productModal .remove-btn {
+        width: auto;
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    /* Responsive styles to match catalog */
+    @media (max-width: 768px) {
+        /* Hide add to cart button text on mobile */
+        .add-to-cart-btn .btn-text {
+            display: none;
+        }
+
+        .add-to-cart-btn {
+            min-width: 40px;
+            padding: 8px;
+        }
+    }
+    
+    @media (max-width: 991px) {
+        #productModal .modal-dialog {
+            max-width: 100%;
+            margin: 0.5rem;
+        }
+        
+        .main-product-image {
+            height: 300px !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid h-100">
     <div class="row h-100">
@@ -146,16 +531,65 @@
     </div>
 </div>
 
-<!-- Product Modal -->
+<!-- Product Detail Modal -->
 <div class="modal fade" id="productModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="productModalTitle">Product Details</h5>
+            <div class="modal-header border-0">
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="productModalBody">
-                <!-- Product details will be loaded here -->
+            <div class="modal-body p-0" id="productModalBody">
+                <div class="container-fluid">
+                    <div class="row">
+                        <!-- Image Gallery -->
+                        <div class="col-lg-6 p-4">
+                            <div class="product-image-gallery">
+                                <div class="main-product-image mb-3" style="height: 400px; overflow: hidden; border-radius: 8px;">
+                                    <img id="mainProductImage" src="" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                                <div class="product-thumbnails d-flex gap-2 flex-wrap" id="productThumbnails">
+                                    <!-- Thumbnails will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Product Info -->
+                        <div class="col-lg-6 p-4">
+                            <div class="product-details">
+                                <h2 id="modalProductTitle" class="mb-3"></h2>
+                                <p class="text-muted mb-3" id="modalProductVendor"></p>
+                                
+                                <div class="price-section mb-4">
+                                    <h3 class="text-primary" id="modalProductPrice"></h3>
+                                </div>
+                                
+                                <!-- Options -->
+                                <div id="modalProductOptions" class="mb-4">
+                                    <!-- Options will be inserted here -->
+                                </div>
+                                
+                                <!-- Cart Actions -->
+                                <div class="cart-actions mb-4" id="modalCartActions">
+                                    <!-- Cart buttons will be inserted here -->
+                                </div>
+                                
+                                <!-- Description -->
+                                <div class="product-description">
+                                    <h5>Description</h5>
+                                    <div id="modalProductDescription"></div>
+                                </div>
+                                
+                                <!-- Additional Details -->
+                                <div class="additional-details mt-4">
+                                    <h6>Product Details</h6>
+                                    <ul class="list-unstyled" id="modalProductDetails">
+                                        <!-- Details will be inserted here -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -173,6 +607,35 @@ let messageCount = 0;
 $(document).ready(function() {
     loadConversationHistory();
     setupDragAndDrop();
+    
+    // Override updateCartUI to also update chat products
+    setTimeout(() => {
+        if (typeof window.updateCartUI === 'function') {
+            const originalUpdateCartUI = window.updateCartUI;
+            window.updateCartUI = function() {
+                originalUpdateCartUI.apply(this, arguments);
+                // Update chat products with our custom styling
+                setTimeout(() => {
+                    updateChatProductCards();
+                }, 50);
+            };
+        }
+    }, 100);
+    
+    // Simple approach - fix icons after any chat updates
+    const originalAppend = $.fn.append;
+    $.fn.append = function() {
+        const result = originalAppend.apply(this, arguments);
+        if ($(this).closest('#chatMessages').length > 0) {
+            setTimeout(() => {
+                fixChatProductIcons();
+                if (typeof updateCartUI === 'function') {
+                    updateCartUI();
+                }
+            }, 100);
+        }
+        return result;
+    };
 });
 
 // Message handling
@@ -219,21 +682,8 @@ function sendMessage(message, imageData = null) {
             console.log('Response received:', response);
             console.log('Attempting to hide modal...');
             
-            // Force close modal immediately and with timeout
-            function forceCloseModal() {
-                $('#loadingModal').modal('hide');
-                $('#loadingModal').removeClass('show');
-                $('#loadingModal').hide();
-                $('#loadingModal').css('display', 'none !important');
-                $('.modal-backdrop').remove();
-                $('body').removeClass('modal-open');
-                $('body').css('overflow', 'auto');
-                $('body').css('padding-right', '');
-            }
-            
-            forceCloseModal();
-            setTimeout(forceCloseModal, 100);
-            setTimeout(forceCloseModal, 500);
+            // Hide loading modal
+            $('#loadingModal').modal('hide');
             
             console.log('Modal should be hidden now');
             
@@ -255,12 +705,6 @@ function sendMessage(message, imageData = null) {
         error: function(xhr, status, error) {
             console.log('Error occurred, hiding modal...');
             $('#loadingModal').modal('hide');
-            $('#loadingModal').removeClass('show');
-            $('#loadingModal').hide();
-            $('#loadingModal').css('display', 'none');
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-            $('body').css('overflow', 'auto');
             
             let errorMsg = 'Sorry, I\'m having trouble connecting. Please try again.';
             
@@ -338,15 +782,55 @@ function formatProducts(products) {
     products.slice(0, 4).forEach((product, index) => {
         const imageUrl = product.images && product.images.length > 0 ? product.images[0].url : '/static/images/placeholder.svg';
         const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'Price N/A';
+        const cartItem = cartManager ? cartManager.getCartItem(product.id) : null;
         
         html += `
             <div class="col-6">
-                <div class="card product-card h-100" onclick="showProductDetails(${product.id})" style="cursor: pointer;">
-                    <img src="${imageUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                <div class="card product-card h-100" data-product-id="${product.id}" onclick="viewProduct(${product.id})" style="cursor: pointer;">
+                    <img src="${imageUrl}" class="card-img-top product-image" style="height: 120px; object-fit: cover;">
                     <div class="card-body p-2">
-                        <h6 class="card-title small mb-1">${product.title}</h6>
-                        <p class="card-text text-primary fw-bold mb-0">${price}</p>
-                        <small class="text-muted">${product.vendor || ''}</small>
+                        <h6 class="card-title product-title small mb-1">${product.title}</h6>
+                        <p class="card-text mb-0">
+                            <span class="current-price text-primary fw-bold">${price}</span>
+                        </p>
+                        <small class="product-vendor text-muted">${product.vendor || ''}</small>
+                        <div class="product-actions mt-2">`;
+        
+        if (cartItem) {
+            html += `
+                            <div style="display: flex; gap: 8px; width: 100%;">
+                                <div class="cart-controls" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                    <button class="quantity-btn" onclick="event.stopPropagation(); decreaseQuantity(${product.id})" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#007bff'; this.style.color='#007bff';" onmouseout="this.style.background='white'; this.style.borderColor='#ddd'; this.style.color='#666';" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 16px; font-weight: bold; color: #666; padding: 0; line-height: 1;">
+                                        −
+                                    </button>
+                                    <span class="quantity-display" style="min-width: 40px; text-align: center; font-size: 16px; font-weight: 600; color: #333;">${cartItem.quantity}</span>
+                                    <button class="quantity-btn" onclick="event.stopPropagation(); increaseQuantity(${product.id})" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#007bff'; this.style.color='#007bff';" onmouseout="this.style.background='white'; this.style.borderColor='#ddd'; this.style.color='#666';" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 16px; font-weight: bold; color: #666; padding: 0; line-height: 1;">
+                                        +
+                                    </button>
+                                    <button class="remove-btn" onclick="event.stopPropagation(); removeFromCart(${product.id})" onmouseover="this.style.background='#c82333';" onmouseout="this.style.background='#dc3545';" title="Remove from cart" style="width: 32px; height: 32px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; line-height: 1; margin-left: 4px;">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4.5 5.5V10.5M7 5.5V10.5M9.5 5.5V10.5M2 3.5H12M10.5 3.5V11.5C10.5 12.0523 10.0523 12.5 9.5 12.5H4.5C3.94772 12.5 3.5 12.0523 3.5 11.5V3.5M8.5 3.5V2.5C8.5 1.94772 8.05228 1.5 7.5 1.5H6.5C5.94772 1.5 5.5 1.94772 5.5 2.5V3.5" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <button class="quick-view-btn" onclick="event.stopPropagation(); quickView(${product.id})" onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#007bff';" onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e5e5e5';" style="width: 40px; height: 40px; background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-size: 16px; padding: 0; line-height: 1;">
+                                    <span>👁️</span>
+                                </button>
+                            </div>`;
+        } else {
+            html += `
+                            <div style="display: flex; gap: 8px; width: 100%;">
+                                <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${product.id})" onmouseover="this.style.background='#218838';" onmouseout="this.style.background='#28a745';" style="flex: 1; padding: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    Add to Cart
+                                </button>
+                                <button class="quick-view-btn" onclick="event.stopPropagation(); quickView(${product.id})" onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#007bff';" onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e5e5e5';" style="width: 40px; height: 40px; background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-size: 16px; padding: 0; line-height: 1;">
+                                    <span>👁️</span>
+                                </button>
+                            </div>`;
+        }
+        
+        html += `
+                        </div>
                     </div>
                 </div>
             </div>
@@ -360,6 +844,16 @@ function formatProducts(products) {
     }
     
     html += '</div>';
+    
+    // Update cart UI after rendering products
+    setTimeout(() => {
+        if (typeof updateCartUI === 'function') {
+            updateCartUI();
+        }
+        // Fix icons in chat products
+        fixChatProductIcons();
+    }, 100);
+    
     return html;
 }
 
@@ -472,6 +966,349 @@ function updateRecentProducts(products) {
 }
 
 // Product details
+function viewProduct(productId) {
+    // Show modal first
+    $('#productModal').modal('show');
+    
+    // Show loading state in the entire modal body
+    const loadingHtml = `
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading product details...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#productModalBody').html(loadingHtml);
+    
+    // Fetch product details
+    $.ajax({
+        url: `/api/products/${productId}`,
+        method: 'GET',
+        success: function(product) {
+            console.log('Product loaded:', product);
+            displayProductInModal(product);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading product:', error);
+            $('#productModalBody').html(`
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-exclamation-circle text-danger" style="font-size: 3rem;"></i>
+                            <p class="mt-3">Failed to load product details</p>
+                            <p class="text-muted">${error || 'Please try again'}</p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+    });
+}
+
+function displayProductInModal(product) {
+    // Build the complete modal content
+    const mainImage = product.images && product.images.length > 0 ? product.images[0].url : '/static/images/placeholder.svg';
+    
+    // Create thumbnails HTML
+    let thumbnailsHtml = '';
+    if (product.images && product.images.length > 0) {
+        product.images.forEach((img, index) => {
+            thumbnailsHtml += `
+                <div class="thumbnail ${index === 0 ? 'active' : ''}" style="width: 60px; height: 60px; cursor: pointer; border: 2px solid ${index === 0 ? '#007bff' : 'transparent'}; border-radius: 4px; overflow: hidden;" onclick="changeMainImage('${img.url}', this)">
+                    <img src="${img.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+            `;
+        });
+    }
+    
+    // Build options HTML
+    let optionsHtml = '';
+    if (product.variants && product.variants.length > 1) {
+        const uniqueOptions = new Set();
+        product.variants.forEach(v => {
+            if (v.option1) uniqueOptions.add(v.option1);
+        });
+        
+        if (uniqueOptions.size > 0) {
+            optionsHtml = '<div class="mb-3"><label class="form-label">Options:</label><div class="d-flex gap-2 flex-wrap">';
+            uniqueOptions.forEach(option => {
+                optionsHtml += `<button class="btn btn-outline-secondary btn-sm">${option}</button>`;
+            });
+            optionsHtml += '</div></div>';
+        }
+    }
+    
+    // Build cart actions HTML
+    const cartItem = cartManager ? cartManager.getCartItem(product.id) : null;
+    let cartActionsHtml = '';
+    
+    if (cartItem) {
+        cartActionsHtml = `
+            <div class="d-flex align-items-center gap-2">
+                <div class="cart-controls" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                    <button class="quantity-btn" onclick="decreaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                        <i class="fas fa-minus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                    </button>
+                    <span class="quantity-display" style="min-width: 40px; text-align: center; font-size: 16px; font-weight: 600; color: #333;">${cartItem.quantity}</span>
+                    <button class="quantity-btn" onclick="increaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                        <i class="fas fa-plus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                    </button>
+                </div>
+                <button class="remove-btn" onclick="removeFromCart(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: auto; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px; gap: 6px;">
+                    <i class="fas fa-trash" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Remove from Cart
+                </button>
+            </div>
+        `;
+    } else {
+        cartActionsHtml = `
+            <button class="add-to-cart-btn btn-lg" onclick="addToCartFromModal(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="flex: 1; padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 16px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-shopping-cart" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Add to Cart
+            </button>
+        `;
+    }
+    
+    // Build additional details HTML
+    let detailsHtml = '';
+    if (product.sku) detailsHtml += `<li><strong>SKU:</strong> ${product.sku}</li>`;
+    if (product.product_type) detailsHtml += `<li><strong>Type:</strong> ${product.product_type}</li>`;
+    if (product.tags) detailsHtml += `<li><strong>Tags:</strong> ${product.tags}</li>`;
+    
+    // Build the complete modal body HTML
+    const modalBodyHtml = `
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Image Gallery -->
+                <div class="col-lg-6 p-4">
+                    <div class="product-image-gallery">
+                        <div class="main-product-image mb-3" style="height: 400px; overflow: hidden; border-radius: 8px;">
+                            <img id="mainProductImage" src="${mainImage}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="product-thumbnails d-flex gap-2 flex-wrap" id="productThumbnails">
+                            ${thumbnailsHtml}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Product Info -->
+                <div class="col-lg-6 p-4">
+                    <div class="product-details">
+                        <h2 id="modalProductTitle" class="mb-3">${product.title}</h2>
+                        <p class="text-muted mb-3" id="modalProductVendor">${product.vendor || 'Unknown Brand'}</p>
+                        
+                        <div class="price-section mb-4">
+                            <h3 class="text-primary" id="modalProductPrice">$${parseFloat(product.price || 0).toFixed(2)}</h3>
+                        </div>
+                        
+                        <!-- Options -->
+                        <div id="modalProductOptions" class="mb-4">
+                            ${optionsHtml}
+                        </div>
+                        
+                        <!-- Cart Actions -->
+                        <div class="cart-actions mb-4" id="modalCartActions">
+                            ${cartActionsHtml}
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="product-description">
+                            <h5>Description</h5>
+                            <div id="modalProductDescription">${product.description || '<p class="text-muted">No description available</p>'}</div>
+                        </div>
+                        
+                        <!-- Additional Details -->
+                        <div class="additional-details mt-4">
+                            <h6>Product Details</h6>
+                            <ul class="list-unstyled" id="modalProductDetails">
+                                ${detailsHtml || '<li class="text-muted">No additional details available</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Update the modal body with the complete HTML
+    $('#productModalBody').html(modalBodyHtml);
+    
+    // Apply hover effects after initial render
+    setTimeout(() => {
+        $('#modalCartActions .quantity-btn').hover(
+            function() { $(this).css({'background': '#f5f5f5', 'border-color': '#007bff', 'color': '#007bff'}); },
+            function() { $(this).css({'background': 'white', 'border-color': '#ddd', 'color': '#666'}); }
+        );
+        $('#modalCartActions .remove-btn').hover(
+            function() { $(this).css('background', '#c82333'); },
+            function() { $(this).css('background', '#dc3545'); }
+        );
+        $('#modalCartActions .add-to-cart-btn').hover(
+            function() { $(this).css('background', '#218838'); },
+            function() { $(this).css('background', '#28a745'); }
+        );
+        
+        // Fix icons after initial load
+        fixModalIcons();
+    }, 100);
+}
+
+function changeMainImage(imageUrl, thumbnailElement) {
+    $('#mainProductImage').attr('src', imageUrl);
+    $('.thumbnail').css('border-color', 'transparent');
+    $(thumbnailElement).css('border-color', '#007bff');
+}
+
+function addToCartFromModal(productId) {
+    // Get product data from modal
+    const productData = {
+        id: productId,
+        title: $('#modalProductTitle').text(),
+        price: $('#modalProductPrice').text().replace('$', ''),
+        vendor: $('#modalProductVendor').text(),
+        image: $('#mainProductImage').attr('src')
+    };
+    
+    cartManager.addToCart(productId, productData);
+    updateCartUI();
+}
+
+function updateModalCartActions(productId) {
+    // Re-fetch product to update cart actions
+    $.ajax({
+        url: `/api/products/${productId}`,
+        method: 'GET',
+        success: function(product) {
+            const cartItem = cartManager ? cartManager.getCartItem(product.id) : null;
+            let cartActionsHtml = '';
+            
+            if (cartItem) {
+                cartActionsHtml = `
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="cart-controls" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <button class="quantity-btn" onclick="decreaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                                <i class="fas fa-minus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                            </button>
+                            <span class="quantity-display" style="min-width: 40px; text-align: center; font-size: 16px; font-weight: 600; color: #333;">${cartItem.quantity}</span>
+                            <button class="quantity-btn" onclick="increaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                                <i class="fas fa-plus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                            </button>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: auto; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px; gap: 6px;">
+                            <i class="fas fa-trash" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Remove from Cart
+                        </button>
+                    </div>
+                `;
+            } else {
+                cartActionsHtml = `
+                    <button class="add-to-cart-btn btn-lg" onclick="addToCartFromModal(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="flex: 1; padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 16px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-shopping-cart" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Add to Cart
+                    </button>
+                `;
+            }
+            
+            $('#modalCartActions').html(cartActionsHtml);
+            
+            // Fix Font Awesome icons
+            setTimeout(fixModalIcons, 10);
+            
+            // Re-apply hover effects after DOM update
+            $('#modalCartActions .quantity-btn').hover(
+                function() { $(this).css({'background': '#f5f5f5', 'border-color': '#007bff', 'color': '#007bff'}); },
+                function() { $(this).css({'background': 'white', 'border-color': '#ddd', 'color': '#666'}); }
+            );
+            $('#modalCartActions .remove-btn').hover(
+                function() { $(this).css('background', '#c82333'); },
+                function() { $(this).css('background', '#dc3545'); }
+            );
+            $('#modalCartActions .add-to-cart-btn').hover(
+                function() { $(this).css('background', '#218838'); },
+                function() { $(this).css('background', '#28a745'); }
+            );
+        }
+    });
+}
+
+function changeMainImage(imageUrl, thumbnailElement) {
+    $('#mainProductImage').attr('src', imageUrl);
+    $('.thumbnail').css('border-color', 'transparent');
+    $(thumbnailElement).css('border-color', '#007bff');
+}
+
+function addToCartFromModal(productId) {
+    // Get product data from modal
+    const productData = {
+        id: productId,
+        title: $('#modalProductTitle').text(),
+        price: $('#modalProductPrice').text().replace('$', ''),
+        vendor: $('#modalProductVendor').text(),
+        image: $('#mainProductImage').attr('src')
+    };
+    
+    cartManager.addToCart(productId, productData);
+    updateCartUI();
+}
+
+function updateModalCartActions(productId) {
+    // Re-fetch product to update cart actions
+    $.ajax({
+        url: `/api/products/${productId}`,
+        method: 'GET',
+        success: function(product) {
+            const cartItem = cartManager ? cartManager.getCartItem(product.id) : null;
+            let cartActionsHtml = '';
+            
+            if (cartItem) {
+                cartActionsHtml = `
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="cart-controls" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <button class="quantity-btn" onclick="decreaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                                <i class="fas fa-minus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                            </button>
+                            <span class="quantity-display" style="min-width: 40px; text-align: center; font-size: 16px; font-weight: 600; color: #333;">${cartItem.quantity}</span>
+                            <button class="quantity-btn" onclick="increaseQuantity(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; color: #666;">
+                                <i class="fas fa-plus" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                            </button>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="width: auto; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px; gap: 6px;">
+                            <i class="fas fa-trash" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Remove from Cart
+                        </button>
+                    </div>
+                `;
+            } else {
+                cartActionsHtml = `
+                    <button class="add-to-cart-btn btn-lg" onclick="addToCartFromModal(${product.id}); setTimeout(() => updateModalCartActions(${product.id}), 100);" style="flex: 1; padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 16px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-shopping-cart" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i> Add to Cart
+                    </button>
+                `;
+            }
+            
+            $('#modalCartActions').html(cartActionsHtml);
+            
+            // Fix Font Awesome icons
+            setTimeout(fixModalIcons, 10);
+            
+            // Re-apply hover effects after DOM update
+            $('#modalCartActions .quantity-btn').hover(
+                function() { $(this).css({'background': '#f5f5f5', 'border-color': '#007bff', 'color': '#007bff'}); },
+                function() { $(this).css({'background': 'white', 'border-color': '#ddd', 'color': '#666'}); }
+            );
+            $('#modalCartActions .remove-btn').hover(
+                function() { $(this).css('background', '#c82333'); },
+                function() { $(this).css('background', '#dc3545'); }
+            );
+            $('#modalCartActions .add-to-cart-btn').hover(
+                function() { $(this).css('background', '#218838'); },
+                function() { $(this).css('background', '#28a745'); }
+            );
+        }
+    });
+}
+
 function showProductDetails(productId) {
     // Fetch and show product details in modal
     $.get(`/api/skus/${productId}`)
@@ -562,5 +1399,113 @@ function loadConversationHistory() {
             }
         });
 }
+
+function quickView(productId) {
+    // For now, just trigger the same modal as viewProduct
+    viewProduct(productId);
+}
+
+// Function to fix Font Awesome icons in modal
+function fixModalIcons() {
+    try {
+        // Replace minus icon
+        $('#modalCartActions .fa-minus').each(function() {
+            if ($(this).text() === '' && $(this).html() === '') {
+                $(this).replaceWith('−');
+            }
+        });
+        
+        // Replace plus icon  
+        $('#modalCartActions .fa-plus').each(function() {
+            if ($(this).text() === '' && $(this).html() === '') {
+                $(this).replaceWith('+');
+            }
+        });
+    } catch (e) {
+        console.error('Error fixing modal icons:', e);
+    }
+}
+
+// Function to fix Font Awesome icons in chat products
+function fixChatProductIcons() {
+    // No longer needed since we're using text/emoji directly
+    return;
+}
+
+// Function to update chat product cards when cart state changes
+function updateChatProductCards() {
+    const productCards = document.querySelectorAll('.products-container .product-card');
+    
+    productCards.forEach(card => {
+        const productId = parseInt(card.dataset.productId);
+        const cartItem = cartManager ? cartManager.getCartItem(productId) : null;
+        const actionsDiv = card.querySelector('.product-actions');
+        
+        if (cartItem && actionsDiv) {
+            // Replace add to cart button with quantity controls
+            actionsDiv.innerHTML = `
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <div class="cart-controls" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <button class="quantity-btn" onclick="event.stopPropagation(); decreaseQuantity(${productId})" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#007bff'; this.style.color='#007bff';" onmouseout="this.style.background='white'; this.style.borderColor='#ddd'; this.style.color='#666';" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 16px; font-weight: bold; color: #666; padding: 0; line-height: 1;">
+                            −
+                        </button>
+                        <span class="quantity-display" style="min-width: 40px; text-align: center; font-size: 16px; font-weight: 600; color: #333;">${cartItem.quantity}</span>
+                        <button class="quantity-btn" onclick="event.stopPropagation(); increaseQuantity(${productId})" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#007bff'; this.style.color='#007bff';" onmouseout="this.style.background='white'; this.style.borderColor='#ddd'; this.style.color='#666';" style="width: 32px; height: 32px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 16px; font-weight: bold; color: #666; padding: 0; line-height: 1;">
+                            +
+                        </button>
+                        <button class="remove-btn" onclick="event.stopPropagation(); removeFromCart(${productId})" onmouseover="this.style.background='#c82333';" onmouseout="this.style.background='#dc3545';" title="Remove from cart" style="width: 32px; height: 32px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 0; line-height: 1; margin-left: 4px;">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.5 5.5V10.5M7 5.5V10.5M9.5 5.5V10.5M2 3.5H12M10.5 3.5V11.5C10.5 12.0523 10.0523 12.5 9.5 12.5H4.5C3.94772 12.5 3.5 12.0523 3.5 11.5V3.5M8.5 3.5V2.5C8.5 1.94772 8.05228 1.5 7.5 1.5H6.5C5.94772 1.5 5.5 1.94772 5.5 2.5V3.5" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="quick-view-btn" onclick="event.stopPropagation(); quickView(${productId})" onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#007bff';" onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e5e5e5';" style="width: 40px; height: 40px; background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-size: 16px; padding: 0; line-height: 1;">
+                        <span>👁️</span>
+                    </button>
+                </div>
+            `;
+        } else if (!cartItem && actionsDiv) {
+            // Restore add to cart button if item was removed
+            actionsDiv.innerHTML = `
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${productId})" onmouseover="this.style.background='#218838';" onmouseout="this.style.background='#28a745';" style="flex: 1; padding: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        Add to Cart
+                    </button>
+                    <button class="quick-view-btn" onclick="event.stopPropagation(); quickView(${productId})" onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#007bff';" onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e5e5e5';" style="width: 40px; height: 40px; background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-size: 16px; padding: 0; line-height: 1;">
+                        <span>👁️</span>
+                    </button>
+                </div>
+            `;
+        }
+    });
+}
+
+// Ensure cart UI is updated when cart.js loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for cart.js to initialize
+    setTimeout(() => {
+        if (typeof updateCartUI === 'function') {
+            updateCartUI();
+        }
+    }, 100);
+    
+    // Simple icon fix approach
+    setTimeout(() => {
+        // Just fix icons once after page load
+        fixChatProductIcons();
+        fixModalIcons();
+        
+        // Override updateCartUI after cart.js loads
+        if (typeof window.updateCartUI === 'function') {
+            const originalUpdateCartUI = window.updateCartUI;
+            window.updateCartUI = function() {
+                originalUpdateCartUI.apply(this, arguments);
+                // Update chat products with our custom styling
+                updateChatProductCards();
+            };
+        }
+    }, 500);
+});
 </script>
+<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
 {% endblock %}

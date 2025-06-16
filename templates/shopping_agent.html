@@ -384,6 +384,138 @@
             height: 300px !important;
         }
     }
+    
+    /* Cart dropdown styles */
+    /* Let JavaScript control the display */
+    
+    /* Cart container styles */
+    .cart-container {
+        position: relative;
+        display: inline-block;
+    }
+    
+    /* Cart dropdown item styles */
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .cart-item:last-child {
+        border-bottom: none;
+    }
+    
+    .cart-item-image {
+        width: 50px !important;
+        height: 50px !important;
+        min-width: 50px;
+        object-fit: cover;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    
+    .cart-item-details {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .cart-item-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .cart-item-price {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .cart-item-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    .cart-item-controls .quantity-btn {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        font-size: 12px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    
+    .cart-item-controls .quantity-btn:hover {
+        background: #f5f5f5;
+        border-color: #007bff;
+        color: #007bff;
+    }
+    
+    .cart-item-controls .quantity-display {
+        min-width: 30px;
+        font-size: 14px;
+        text-align: center;
+        font-weight: 500;
+    }
+    
+    .cart-item-delete {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+        font-size: 16px;
+    }
+    
+    .cart-item-delete:hover {
+        color: #c82333;
+    }
+    
+    /* Ensure cart dropdown has proper sizing */
+    #cart-dropdown .cart-body {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+    
+    #cart-dropdown .cart-items {
+        padding: 16px;
+    }
+    
+    /* Cart notification styles */
+    .cart-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+        z-index: 9999;
+    }
+    
+    .cart-notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
 </style>
 {% endblock %}
 
@@ -400,13 +532,56 @@
                         </h4>
                         <small class="opacity-75">Ask me anything about our products!</small>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center">
                         <button class="btn btn-outline-light btn-sm" onclick="clearChat()">
                             <i class="bi bi-trash"></i> Clear Chat
                         </button>
-                        <button class="btn btn-outline-light btn-sm" onclick="exportChat()">
-                            <i class="bi bi-download"></i> Export
-                        </button>
+                        
+                        <!-- Cart Icon -->
+                        <div class="cart-container position-relative">
+                            <button class="btn btn-outline-light btn-sm position-relative" onclick="toggleCartDropdown()" type="button">
+                                <i class="bi bi-cart3"></i> Cart
+                                <span class="badge rounded-pill bg-danger" id="cart-badge" style="display: none; position: absolute; top: -8px; right: -8px; min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; line-height: 20px;">
+                                    <span id="cart-count">0</span>
+                                </span>
+                            </button>
+                            
+                            <!-- Cart Dropdown -->
+                            <div class="cart-dropdown" id="cart-dropdown" style="position: absolute; right: 0; top: calc(100% + 10px); background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 350px; max-height: 500px; z-index: 1000; overflow: hidden;">
+                                <div class="cart-header" style="padding: 16px 20px; border-bottom: 1px solid #e5e5e5; background: #f8f9fa;">
+                                    <h5 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">Shopping Cart</h5>
+                                </div>
+                                <div class="cart-body" style="max-height: 350px; overflow-y: auto;">
+                                    <div id="cart-items" class="cart-items" style="padding: 16px; display: none;"></div>
+                                    <div id="empty-cart" class="empty-cart" style="padding: 60px 20px; text-align: center; color: #999; display: block;">
+                                        <i class="bi bi-cart3" style="font-size: 48px; margin-bottom: 12px; color: #ddd;"></i>
+                                        <p style="margin: 0; font-size: 14px;">Your cart is empty</p>
+                                    </div>
+                                </div>
+                                <div class="cart-footer" id="cart-total" style="display: none; padding: 16px 20px; border-top: 1px solid #e5e5e5; background: #f8f9fa;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span style="font-size: 16px; font-weight: 600; color: #333;">Total:</span>
+                                        <span style="font-size: 20px; font-weight: 600; color: #007bff;" id="cart-total-amount">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 3-dot menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="exportChat(); return false;">
+                                    <i class="bi bi-download"></i> Export Chat
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/agent/settings">
+                                    <i class="bi bi-gear"></i> Settings
+                                </a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -597,16 +772,41 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
 <script>
 // Global variables
 const sessionId = '{{ session_id }}';
 let currentImageData = null;
 let messageCount = 0;
 
+// Custom toggle function for our cart dropdown
+function toggleCartDropdown() {
+    const cartDropdown = document.getElementById('cart-dropdown');
+    if (cartDropdown) {
+        if (cartDropdown.classList.contains('show')) {
+            cartDropdown.classList.remove('show');
+            cartDropdown.style.display = 'none';
+        } else {
+            cartDropdown.classList.add('show');
+            cartDropdown.style.display = 'block';
+            renderCartItems();
+        }
+    }
+}
+
+// We'll override these functions after cart.js loads
+
 // Initialize
 $(document).ready(function() {
     loadConversationHistory();
     setupDragAndDrop();
+    
+    // Initialize cart dropdown state
+    const cartDropdown = document.getElementById('cart-dropdown');
+    if (cartDropdown) {
+        cartDropdown.style.display = 'none';
+        cartDropdown.classList.remove('show');
+    }
     
     // Override updateCartUI to also update chat products
     setTimeout(() => {
@@ -1480,13 +1680,154 @@ function updateChatProductCards() {
     });
 }
 
+// Cart functionality for shopping assistant
+// Since cart.js is loaded first, we can use its functions directly
+// We just need to ensure the cart UI is updated properly for our page
+
+// Note: cart.js already handles:
+// - toggleCart() function
+// - renderCartItems() function  
+// - updateCartBadge() function
+// - Closing dropdown when clicking outside
+// We need to override renderCartItems to handle our custom cart total display
+
+// We'll override renderCartItems after cart.js loads
+
+// Override cart manager functions to update our UI
+if (window.cartManager) {
+    cartManager.addListener(function(cart) {
+        updateCartBadge();
+        updateChatProductCards();
+        // Re-render cart dropdown if it's open
+        const cartDropdown = document.getElementById('cart-dropdown');
+        if (cartDropdown && cartDropdown.classList.contains('show')) {
+            renderCartItems();
+        }
+    });
+}
+
+// Add click outside handler for cart dropdown
+document.addEventListener('click', function(e) {
+    const cartDropdown = document.getElementById('cart-dropdown');
+    const cartContainer = document.querySelector('.cart-container');
+    
+    // Check if click is outside cart container
+    if (cartDropdown && cartContainer && !cartContainer.contains(e.target)) {
+        if (cartDropdown.style.display === 'block' || cartDropdown.classList.contains('show')) {
+            cartDropdown.classList.remove('show');
+            cartDropdown.style.display = 'none';
+        }
+    }
+});
+
 // Ensure cart UI is updated when cart.js loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart functions immediately
+    if (window.cartManager) {
+        updateCartBadge();
+    }
+    
     // Wait a bit for cart.js to initialize
     setTimeout(() => {
         if (typeof updateCartUI === 'function') {
+            // Call original updateCartUI
             updateCartUI();
+            // Update our cart badge
+            updateCartBadge();
         }
+        
+        // Override renderCartItems to handle our custom cart display
+        if (typeof renderCartItems === 'function') {
+            const originalRenderCartItems = window.renderCartItems;
+            window.renderCartItems = function() {
+                const cartItemsContainer = document.getElementById('cart-items');
+                const cartTotal = document.getElementById('cart-total');
+                const emptyCart = document.getElementById('empty-cart');
+                const totalAmountElement = document.getElementById('cart-total-amount');
+                
+                if (!cartItemsContainer) return;
+                
+                const items = cartManager.getCartItems();
+                
+                if (items.length === 0) {
+                    cartItemsContainer.style.display = 'none';
+                    if (emptyCart) emptyCart.style.display = 'block';
+                    if (cartTotal) cartTotal.style.display = 'none';
+                } else {
+                    cartItemsContainer.style.display = 'block';
+                    if (emptyCart) emptyCart.style.display = 'none';
+                    if (cartTotal) cartTotal.style.display = 'block';
+                    
+                    // Generate cart items HTML with proper styling
+                    cartItemsContainer.innerHTML = items.map(item => {
+                        const price = parseFloat(item.price).toFixed(2);
+                        return `
+                            <div class="cart-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee;">
+                                <img src="${item.image || '/static/images/placeholder.svg'}" 
+                                     alt="${item.title}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; flex-shrink: 0;">
+                                <div class="cart-item-details" style="flex: 1; min-width: 0;">
+                                    <div class="cart-item-title" title="${item.title}" style="font-size: 14px; font-weight: 500; color: #333; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${item.title}
+                                    </div>
+                                    <div class="cart-item-vendor" style="font-size: 12px; color: #999; margin-bottom: 2px;">
+                                        ${item.vendor || 'Unknown Brand'}
+                                    </div>
+                                    <div class="cart-item-price" style="font-size: 13px; color: #666; font-weight: 500;">
+                                        $${price} × ${item.quantity} = $${(parseFloat(price) * item.quantity).toFixed(2)}
+                                    </div>
+                                </div>
+                                <div class="cart-item-controls" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                    <button class="quantity-btn minus" onclick="event.stopPropagation(); decreaseQuantity(${item.id})" 
+                                            style="width: 24px; height: 24px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0;">
+                                        −
+                                    </button>
+                                    <span class="quantity-display" style="display: inline-block; min-width: 24px; text-align: center; font-size: 14px; font-weight: 500; color: #333;">
+                                        ${item.quantity}
+                                    </span>
+                                    <button class="quantity-btn plus" onclick="event.stopPropagation(); increaseQuantity(${item.id})" 
+                                            style="width: 24px; height: 24px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0;">
+                                        +
+                                    </button>
+                                    <button class="cart-item-delete" onclick="event.stopPropagation(); removeFromCart(${item.id})" title="Remove from cart" 
+                                            style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 2px 6px; font-size: 20px; line-height: 1;">
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    // Update cart total
+                    if (totalAmountElement) {
+                        const totalPrice = cartManager.getTotalPrice();
+                        totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
+                    }
+                }
+            };
+        }
+        
+        // Override cart functions to prevent dropdown from closing
+        window.increaseQuantity = function(productId) {
+            cartManager.increaseQuantity(productId);
+            updateCartUI();
+            // Re-render cart items without closing dropdown
+            renderCartItems();
+        };
+
+        window.decreaseQuantity = function(productId) {
+            cartManager.decreaseQuantity(productId);
+            updateCartUI();
+            // Re-render cart items without closing dropdown
+            renderCartItems();
+        };
+
+        window.removeFromCart = function(productId) {
+            cartManager.removeFromCart(productId);
+            updateCartUI();
+            // Re-render cart items without closing dropdown
+            renderCartItems();
+        };
     }, 100);
     
     // Simple icon fix approach
@@ -1502,10 +1843,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 originalUpdateCartUI.apply(this, arguments);
                 // Update chat products with our custom styling
                 updateChatProductCards();
+                // Update cart badge
+                updateCartBadge();
             };
         }
     }, 500);
 });
 </script>
-<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
 {% endblock %}

@@ -5,11 +5,12 @@ An AI-powered product search application with vector search capabilities for ima
 ## Features
 
 - **Vector Search**: Search products using text descriptions or images
+- **Image Search**: Upload product images to find similar products
+- **Shopping Agent**: Coversational shopping agent with option to add to cart inside the agent.
 - **Shopify Integration**: Sync products and categories from Shopify store
 - **CRUD Operations**: Manage categories and SKUs
 - **REST API**: Full API for all operations
 - **Multi-database Support**: SQLite by default, easily configurable for other databases
-- **Image Search**: Upload product images to find similar products
 
 ## Prerequisites
 

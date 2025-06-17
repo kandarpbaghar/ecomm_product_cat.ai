@@ -1,19 +1,36 @@
+# Core Flask Dependencies
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.0.5
 Flask-RESTful==0.3.10
-SQLAlchemy==2.0.23
-weaviate-client==4.4.0
-Pillow==10.1.0
-requests==2.31.0
-python-dotenv==1.0.0
-gunicorn==21.2.0
+werkzeug>=3.0.0  # Explicit for secure_filename
 
-# Shopping Agent Dependencies
-adk-python>=0.1.0
-mcp>=0.1.0
+# Database
+SQLAlchemy==2.0.23
+
+# Vector Database & ML
+weaviate-client==4.4.0
+sentence-transformers>=2.2.0  # For local text embeddings
+numpy>=1.24.0  # For vector operations
+
+# Image Processing
+Pillow==10.1.0
+
+# HTTP & API Clients
+requests==2.31.0
 openai>=1.0.0
 anthropic>=0.1.0
 google-generativeai>=0.3.0
+
+# Utilities
+python-dotenv==1.0.0
+python-dateutil>=2.8.0  # For parsing datetime strings
+
+# Web Server
+gunicorn==21.2.0
+
+# Shopping Agent Dependencies
+google-adk
+mcp>=0.1.0
 websockets>=11.0
 aiohttp>=3.9.0

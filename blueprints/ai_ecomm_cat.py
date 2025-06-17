@@ -1407,20 +1407,25 @@ class VectorConfigResource(Resource):
                     print(f"Migration error: {migration_error}")
                     # Continue without failing
             
-            # Get stored config
-            stored_config = db.session.execute(text("SELECT * FROM vector_config ORDER BY id DESC LIMIT 1")).fetchone()
+            # Get stored config with explicit column names to avoid indexing issues
+            stored_config = db.session.execute(text("""
+                SELECT weaviate_url, api_key, vectorizer, timeout, openai_api_key, image_embedding_model 
+                FROM vector_config 
+                ORDER BY id DESC 
+                LIMIT 1
+            """)).fetchone()
             
             return {
-                'weaviate_url': env_url or (stored_config[1] if stored_config else 'http://localhost:8080'),
-                'api_key': env_api_key or (stored_config[2] if stored_config else ''),
-                'vectorizer': env_vectorizer or (stored_config[3] if stored_config else 'text2vec-transformers'),
-                'timeout': stored_config[4] if stored_config else 30,
-                'openai_api_key': env_openai_api_key or (stored_config[5] if stored_config and len(stored_config) > 5 else ''),
-                'image_embedding_model': stored_config[6] if stored_config and len(stored_config) > 6 else 'clip-vit-base-patch32',
-                'url_source': 'environment' if env_url else ('database' if stored_config and stored_config[1] else 'default'),
-                'api_key_source': 'environment' if env_api_key else ('database' if stored_config and stored_config[2] else 'none'),
-                'openai_api_key_source': 'environment' if env_openai_api_key else ('database' if stored_config and len(stored_config) > 5 and stored_config[5] else 'none'),
-                'configured': bool((env_url or (stored_config and stored_config[1])))
+                'weaviate_url': env_url or (stored_config[0] if stored_config else 'http://localhost:8080'),
+                'api_key': env_api_key or (stored_config[1] if stored_config else ''),
+                'vectorizer': env_vectorizer or (stored_config[2] if stored_config else 'text2vec-transformers'),
+                'timeout': stored_config[3] if stored_config else 30,
+                'openai_api_key': env_openai_api_key or (stored_config[4] if stored_config else ''),
+                'image_embedding_model': stored_config[5] if stored_config and len(stored_config) > 5 else 'clip-vit-base-patch32',
+                'url_source': 'environment' if env_url else ('database' if stored_config and stored_config[0] else 'default'),
+                'api_key_source': 'environment' if env_api_key else ('database' if stored_config and stored_config[1] else 'none'),
+                'openai_api_key_source': 'environment' if env_openai_api_key else ('database' if stored_config and stored_config[4] else 'none'),
+                'configured': bool((env_url or (stored_config and stored_config[0])))
             }
             
         except Exception as e:
@@ -1442,24 +1447,35 @@ class VectorConfigResource(Resource):
         """Save vector configuration"""
         import os
         
-        # Don't allow saving if environment variables are set
+        # Check which fields are set via environment variables
+        env_restrictions = []
         if os.getenv('WEAVIATE_URL'):
-            return {'error': 'Configuration is set via environment variables and cannot be changed'}, 400
+            env_restrictions.append('Weaviate URL')
+        if os.getenv('WEAVIATE_API_KEY'):
+            env_restrictions.append('Weaviate API Key')
+        if os.getenv('OPENAI_API_KEY'):
+            env_restrictions.append('OpenAI API Key')
         
         data = request.get_json()
         if not data:
             return {'error': 'No configuration data provided'}, 400
         
-        weaviate_url = data.get('weaviate_url', '').strip()
-        api_key = data.get('api_key', '').strip()
-        vectorizer = data.get('vectorizer', 'text2vec-transformers').strip()
+        # Use environment variables if set, otherwise use provided data
+        weaviate_url = os.getenv('WEAVIATE_URL') or data.get('weaviate_url', '').strip()
+        api_key = os.getenv('WEAVIATE_API_KEY') or data.get('api_key', '').strip()
+        vectorizer = os.getenv('WEAVIATE_VECTORIZER') or data.get('vectorizer', 'text2vec-transformers').strip()
         timeout = data.get('timeout', 30)
-        openai_api_key = data.get('openai_api_key', '').strip()
+        openai_api_key = os.getenv('OPENAI_API_KEY') or data.get('openai_api_key', '').strip()
         image_embedding_model = data.get('image_embedding_model', 'clip-vit-base-patch32').strip()
         
         # Validate required fields
         if not weaviate_url:
             return {'error': 'Weaviate URL is required'}, 400
+        
+        # Warn about environment restrictions but don't block saving
+        warning_message = None
+        if env_restrictions:
+            warning_message = f"Note: {', '.join(env_restrictions)} cannot be modified (set via environment variables)"
         
         try:
             from sqlalchemy import text
@@ -1498,6 +1514,9 @@ class VectorConfigResource(Resource):
                 except Exception as migration_error:
                     print(f"Migration error: {migration_error}")
             
+            # Debug logging
+            print(f"Saving vector config - OpenAI API key: {openai_api_key[:10] + '...' if openai_api_key else 'Empty'}")
+            
             # Clear existing config and insert new
             db.session.execute(text("DELETE FROM vector_config"))
             db.session.execute(
@@ -1506,7 +1525,18 @@ class VectorConfigResource(Resource):
             )
             db.session.commit()
             
-            return {'message': 'Vector configuration saved successfully'}, 200
+            # Verify what was saved
+            saved_config = db.session.execute(text("""
+                SELECT openai_api_key FROM vector_config ORDER BY id DESC LIMIT 1
+            """)).fetchone()
+            if saved_config:
+                print(f"Verified saved OpenAI API key: {saved_config[0][:10] + '...' if saved_config[0] else 'Empty'}")
+            
+            response = {'message': 'Vector configuration saved successfully'}
+            if warning_message:
+                response['warning'] = warning_message
+            
+            return response, 200
             
         except Exception as e:
             print(f"Error saving vector config: {e}")

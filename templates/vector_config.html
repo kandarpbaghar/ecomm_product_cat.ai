@@ -359,6 +359,7 @@ async function loadConfiguration() {
         const data = await response.json();
         
         configData = data;
+        console.log('Loaded configuration:', data);
         
         // Update form fields
         document.getElementById('weaviateUrl').value = data.weaviate_url || 'http://localhost:8080';
@@ -367,6 +368,8 @@ async function loadConfiguration() {
         document.getElementById('timeout').value = data.timeout || 30;
         document.getElementById('openaiApiKey').value = data.openai_api_key || '';
         document.getElementById('imageEmbeddingModel').value = data.image_embedding_model || 'clip-vit-base-patch32';
+        
+        console.log('OpenAI API key field value after setting:', document.getElementById('openaiApiKey').value);
         
         // Update status indicators
         updateFieldStatus('weaviateUrl', data.url_source);
@@ -395,16 +398,34 @@ function updateFieldStatus(fieldId, source) {
     
     const inputElement = document.getElementById(fieldId);
     
+    if (!statusElement || !inputElement) {
+        console.warn(`Could not find elements for field: ${fieldId}`);
+        return;
+    }
+    
     if (source === 'environment') {
         statusElement.innerHTML = '<i class="bi bi-shield-check text-success" title="Set in environment"></i>';
         inputElement.disabled = true;
         inputElement.placeholder = 'Set in environment variables';
+        // Hide the eye icon for password fields when disabled
+        const eyeButton = inputElement.nextElementSibling;
+        if (eyeButton && eyeButton.tagName === 'BUTTON') {
+            eyeButton.disabled = true;
+        }
     } else if (source === 'database') {
         statusElement.innerHTML = '<i class="bi bi-database text-info" title="Saved in database"></i>';
         inputElement.disabled = false;
+        const eyeButton = inputElement.nextElementSibling;
+        if (eyeButton && eyeButton.tagName === 'BUTTON') {
+            eyeButton.disabled = false;
+        }
     } else {
         statusElement.innerHTML = '<i class="bi bi-exclamation-triangle text-warning" title="Not configured"></i>';
         inputElement.disabled = false;
+        const eyeButton = inputElement.nextElementSibling;
+        if (eyeButton && eyeButton.tagName === 'BUTTON') {
+            eyeButton.disabled = false;
+        }
     }
 }
 
@@ -412,17 +433,36 @@ function updateFieldStatus(fieldId, source) {
 async function saveConfiguration(event) {
     event.preventDefault();
     
+    // Helper function to get value even from disabled fields
+    const getFieldValue = (fieldId) => {
+        const field = document.getElementById(fieldId);
+        // If field is disabled, don't send its value (let backend use env var)
+        if (field.disabled) {
+            return undefined;
+        }
+        return field.value.trim();
+    };
+    
     const formData = {
-        weaviate_url: document.getElementById('weaviateUrl').value.trim(),
-        api_key: document.getElementById('apiKey').value.trim(),
+        weaviate_url: getFieldValue('weaviateUrl'),
+        api_key: getFieldValue('apiKey'),
         vectorizer: document.getElementById('vectorizer').value,
         timeout: parseInt(document.getElementById('timeout').value),
-        openai_api_key: document.getElementById('openaiApiKey').value.trim(),
+        openai_api_key: getFieldValue('openaiApiKey'),
         image_embedding_model: document.getElementById('imageEmbeddingModel').value
     };
     
+    // Remove undefined values to avoid sending them
+    Object.keys(formData).forEach(key => {
+        if (formData[key] === undefined) {
+            delete formData[key];
+        }
+    });
+    
+    console.log('Saving configuration:', formData);
+    
     // Validate form
-    if (!formData.weaviate_url) {
+    if (!formData.weaviate_url && !document.getElementById('weaviateUrl').disabled) {
         showToast('Please provide a Weaviate URL', 'error');
         return;
     }
@@ -440,6 +480,9 @@ async function saveConfiguration(event) {
         
         if (response.ok) {
             showToast('Vector configuration saved successfully', 'success');
+            if (result.warning) {
+                showToast(result.warning, 'warning');
+            }
             loadConfiguration(); // Reload to update status
         } else {
             showToast(result.error || 'Failed to save configuration', 'error');

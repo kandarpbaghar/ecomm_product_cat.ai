@@ -9,7 +9,7 @@ let currentFilters = {
     minPrice: null,
     maxPrice: null,
     inStock: true,
-    outOfStock: false
+    outOfStock: true  // Changed to true to show all products by default
 };
 let currentSort = 'relevance';
 let currentView = 'grid';
@@ -17,6 +17,8 @@ let searchQuery = '';
 let searchImage = null;
 let allProducts = [];
 let filteredProducts = [];
+let cropper = null;
+let originalImageFile = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -51,11 +53,15 @@ function setupEventListeners() {
         applyFilters();
     });
     
-    // Out of stock checkbox
+    // Out of stock checkbox  
     document.getElementById('out-of-stock').addEventListener('change', function() {
         currentFilters.outOfStock = this.checked;
         applyFilters();
     });
+    
+    // Set initial checkbox state
+    document.getElementById('in-stock').checked = currentFilters.inStock;
+    document.getElementById('out-of-stock').checked = currentFilters.outOfStock;
 }
 
 async function loadFilterOptions() {
@@ -354,6 +360,12 @@ async function performImageSearch() {
             return;
         }
         
+        console.log('Performing image search with file:', {
+            name: searchImage.name,
+            type: searchImage.type,
+            size: searchImage.size
+        });
+        
         const formData = new FormData();
         formData.append('image', searchImage);
         formData.append('search_type', 'image');
@@ -372,20 +384,26 @@ async function performImageSearch() {
         
         if (data.error) {
             alert('Error performing image search: ' + data.error);
+            hideLoading();
             return;
         }
         
         // SearchResource returns results, not products
         const products = data.results || [];
+        
+        // Clear the loading state before displaying
+        hideLoading();
+        
+        // Display the results
         displayProducts(products);
         updateResultsCount(products.length);
+        updatePagination(products.length, 20, 1); // Add pagination update
         updateActiveFilters();
         
     } catch (error) {
         console.error('Error performing image search:', error);
-        showError();
-    } finally {
         hideLoading();
+        showError();
     }
 }
 
@@ -417,15 +435,20 @@ async function performCombinedSearch() {
         
         // SearchResource returns results, not products
         const products = data.results || [];
+        
+        // Clear the loading state before displaying
+        hideLoading();
+        
+        // Display the results
         displayProducts(products);
         updateResultsCount(products.length);
+        updatePagination(products.length, 20, 1); // Add pagination update
         updateActiveFilters();
         
     } catch (error) {
         console.error('Error performing combined search:', error);
-        showError();
-    } finally {
         hideLoading();
+        showError();
     }
 }
 
@@ -434,8 +457,12 @@ function displayProducts(products) {
     container.innerHTML = '';
     container.className = currentView === 'grid' ? 'products-grid' : 'products-list';
     
+    // Ensure container is visible
+    container.style.display = '';
+    
     if (products.length === 0) {
         document.getElementById('no-results').classList.add('show');
+        container.style.display = 'none';
         return;
     } else {
         document.getElementById('no-results').classList.remove('show');
@@ -543,8 +570,7 @@ function updateActiveFilters() {
                       currentFilters.vendors.length > 0 || 
                       currentFilters.productTypes.length > 0 ||
                       Object.keys(currentFilters.options).length > 0 ||
-                      currentFilters.minPrice || currentFilters.maxPrice ||
-                      searchQuery || searchImage;
+                      currentFilters.minPrice || currentFilters.maxPrice;
     
     if (!hasFilters) {
         container.style.display = 'none';
@@ -553,25 +579,6 @@ function updateActiveFilters() {
     
     container.style.display = 'flex';
     container.innerHTML = '';
-    
-    // Add search query pill
-    if (searchQuery) {
-        const pill = createFilterPill('Search', searchQuery, () => {
-            document.getElementById('search-text').value = '';
-            searchQuery = '';
-            loadProducts(1);
-        });
-        container.appendChild(pill);
-    }
-    
-    // Add image search pill
-    if (searchImage) {
-        const pill = createFilterPill('Image', 'Image uploaded', () => {
-            removeImage();
-            loadProducts(1);
-        });
-        container.appendChild(pill);
-    }
     
     // Add category pills
     currentFilters.categories.forEach(cat => {
@@ -628,7 +635,7 @@ function createFilterPill(type, value, removeCallback) {
 }
 
 function clearAllFilters() {
-    // Reset all filters
+    // Reset all filters (but keep search query and image)
     currentFilters = {
         categories: [],
         vendors: [],
@@ -637,29 +644,33 @@ function clearAllFilters() {
         minPrice: null,
         maxPrice: null,
         inStock: true,
-        outOfStock: false
+        outOfStock: true  // Keep default to show all products
     };
     
-    // Clear search
-    searchQuery = '';
-    document.getElementById('search-text').value = '';
-    removeImage();
+    // Don't clear search - it's not a filter
+    // searchQuery and searchImage remain unchanged
     
-    // Uncheck all filter checkboxes
+    // Uncheck all filter checkboxes except stock filters
     document.querySelectorAll('.filter-option input[type="checkbox"]').forEach(cb => {
-        cb.checked = false;
+        if (cb.id !== 'in-stock' && cb.id !== 'out-of-stock') {
+            cb.checked = false;
+        }
     });
     
-    // Reset stock checkboxes
+    // Reset stock checkboxes to default (both checked)
     document.getElementById('in-stock').checked = true;
-    document.getElementById('out-of-stock').checked = false;
+    document.getElementById('out-of-stock').checked = true;
     
     // Clear price inputs
     document.getElementById('min-price').value = '';
     document.getElementById('max-price').value = '';
     
-    // Reload products
-    loadProducts(1);
+    // Reload products with current search
+    if (searchQuery || searchImage) {
+        performSearch();
+    } else {
+        loadProducts(1);
+    }
 }
 
 function applyFilters() {
@@ -696,28 +707,28 @@ function toggleFilter(element) {
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (file) {
-        searchImage = file;
+        originalImageFile = file;
         
-        // Show preview
+        // Show crop modal instead of direct search
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('preview-img').src = e.target.result;
-            document.getElementById('image-preview').classList.add('show');
+            openCropModal(e.target.result);
         };
         reader.readAsDataURL(file);
-        
-        // Automatically perform search when image is uploaded
-        // Small delay to ensure image preview is shown first
-        setTimeout(() => {
-            performSearch();
-        }, 100);
     }
 }
 
 function removeImage() {
     searchImage = null;
+    originalImageFile = null;
     document.getElementById('search-image').value = '';
     document.getElementById('image-preview').classList.remove('show');
+    
+    // Clean up cropper if exists
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
 }
 
 function viewProductDetails(productId) {
@@ -817,3 +828,176 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// Image Cropping Functions
+function openCropModal(imageSrc) {
+    const modal = document.getElementById('cropModal');
+    const image = document.getElementById('cropImage');
+    
+    // Set current search text from main input
+    const currentSearchText = document.getElementById('search-text').value;
+    document.getElementById('cropSearchText').value = currentSearchText;
+    
+    // Show modal
+    modal.classList.add('show');
+    
+    // Initialize cropper
+    image.src = imageSrc;
+    image.onload = function() {
+        if (cropper) {
+            cropper.destroy();
+        }
+        
+        cropper = new Cropper(image, {
+            aspectRatio: NaN, // Free aspect ratio
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 1, // Full image by default
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: true,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: true,
+            background: true, // Show grid background
+            modal: true, // Show black modal outside crop box
+            ready: function() {
+                // Ensure the crop box is visible and covers full image
+                this.cropper.crop();
+                // Set crop box to full image size
+                const containerData = this.cropper.getContainerData();
+                const imageData = this.cropper.getImageData();
+                this.cropper.setCropBoxData({
+                    left: imageData.left,
+                    top: imageData.top,
+                    width: imageData.width,
+                    height: imageData.height
+                });
+            }
+        });
+    };
+}
+
+function closeCropModal() {
+    const modal = document.getElementById('cropModal');
+    modal.classList.remove('show');
+    
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    
+    // Reset file input
+    document.getElementById('search-image').value = '';
+    originalImageFile = null;
+    
+    // Ensure search button is reset to default state
+    const searchBtn = document.querySelector('.crop-search-btn');
+    if (searchBtn) {
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = '<i class="fas fa-search"></i> Search';
+    }
+}
+
+function rotateCropper(degrees) {
+    if (cropper) {
+        cropper.rotate(degrees);
+    }
+}
+
+function resetCropper() {
+    if (cropper) {
+        cropper.reset();
+    }
+}
+
+async function performCroppedSearch() {
+    if (!cropper) return;
+    
+    const searchBtn = document.querySelector('.crop-search-btn');
+    const originalBtnText = searchBtn.innerHTML;
+    searchBtn.disabled = true;
+    searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    showLoading();
+    
+    try {
+        // Get cropped canvas
+        const canvas = cropper.getCroppedCanvas({
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        // Convert canvas to blob with higher quality
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                alert('Failed to process image');
+                hideLoading();
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = originalBtnText;
+                return;
+            }
+            
+            // Create a new file from the blob
+            const croppedFile = new File([blob], 'cropped-image.png', { type: 'image/png' });
+            searchImage = croppedFile;
+            
+            // Get search text from crop modal
+            const cropSearchText = document.getElementById('cropSearchText').value;
+            searchQuery = cropSearchText;
+            
+            // Update main search input
+            document.getElementById('search-text').value = cropSearchText;
+            
+            // Show preview of cropped image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview-img').src = e.target.result;
+                document.getElementById('image-preview').classList.add('show');
+            };
+            reader.readAsDataURL(croppedFile);
+            
+            // Reset button state before closing modal
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = originalBtnText;
+            
+            // Close modal
+            closeCropModal();
+            
+            // Perform search with cropped image
+            try {
+                if (cropSearchText && searchImage) {
+                    // Combined search
+                    await performCombinedSearch();
+                } else if (searchImage) {
+                    // Image only search
+                    await performImageSearch();
+                }
+            } catch (searchError) {
+                console.error('Error during search:', searchError);
+                hideLoading();
+            }
+        }, 'image/png');
+    } catch (error) {
+        console.error('Error processing cropped image:', error);
+        alert('Failed to process image');
+        hideLoading();
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = originalBtnText;
+    }
+}
+
+// Add modal keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (document.getElementById('cropModal').classList.contains('show')) {
+        if (e.key === 'Escape') {
+            closeCropModal();
+        } else if (e.key === 'Enter' && document.activeElement.id === 'cropSearchText') {
+            e.preventDefault();
+            performCroppedSearch();
+        }
+    }
+});

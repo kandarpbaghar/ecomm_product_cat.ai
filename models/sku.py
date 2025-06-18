@@ -19,14 +19,20 @@ class SKU(db.Model):
     # Pricing
     price = db.Column(Numeric(10, 2))
     compare_at_price = db.Column(Numeric(10, 2))
+    taxable = db.Column(db.Boolean, default=True)
     
     # Inventory
     sku_code = db.Column(db.String(100), unique=True)
     barcode = db.Column(db.String(100))
     track_quantity = db.Column(db.Boolean, default=True)
     quantity = db.Column(db.Integer, default=0)
+    inventory_policy = db.Column(db.String(20), default='deny')  # deny, continue
+    
+    # Shipping
+    requires_shipping = db.Column(db.Boolean, default=True)
     weight = db.Column(db.Float)
     weight_unit = db.Column(db.String(10), default='kg')
+    fulfillment_service = db.Column(db.String(50), default='manual')  # manual, automatic
     
     # SEO
     meta_title = db.Column(db.String(255))
@@ -65,10 +71,14 @@ class SKU(db.Model):
             'status': self.status,
             'price': float(self.price) if self.price else None,
             'compare_at_price': float(self.compare_at_price) if self.compare_at_price else None,
+            'taxable': self.taxable,
             'sku_code': self.sku_code,
             'barcode': self.barcode,
             'track_quantity': self.track_quantity,
             'quantity': self.quantity,
+            'inventory_policy': self.inventory_policy,
+            'fulfillment_service': self.fulfillment_service,
+            'requires_shipping': self.requires_shipping,
             'weight': self.weight,
             'weight_unit': self.weight_unit,
             'meta_title': self.meta_title,

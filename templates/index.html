@@ -2,6 +2,128 @@
 
 {% block title %}AI E-commerce Product Search - Home{% endblock %}
 
+{% block style %}
+<style>
+/* Enhanced SKU Modal Styles */
+#skuModal .modal-dialog {
+    max-width: 1200px;
+}
+
+#skuModal .nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+}
+
+#skuModal .nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-bottom: -2px;
+}
+
+#skuModal .nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #495057;
+}
+
+#skuModal .nav-tabs .nav-link.active {
+    color: #495057;
+    background-color: transparent;
+    border-color: transparent transparent #007bff;
+}
+
+#skuModal .card {
+    border: 1px solid #e3e8ee;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+#skuModal .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+.sku-image-upload-area {
+    border: 2px dashed #dee2e6;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.sku-image-upload-area:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.seo-preview {
+    font-family: Arial, sans-serif;
+}
+
+.seo-title {
+    font-size: 18px;
+    line-height: 1.3;
+    margin-bottom: 3px;
+}
+
+.seo-url {
+    font-size: 14px;
+    line-height: 1.3;
+    margin-bottom: 3px;
+}
+
+.seo-description {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Variant table styles */
+#variantsTable {
+    font-size: 0.875rem;
+}
+
+#variantsTable input {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.option-values-input {
+    min-height: 38px;
+}
+
+/* Multiple images preview */
+.image-preview-item {
+    position: relative;
+    display: inline-block;
+    margin: 0.5rem;
+}
+
+.image-preview-item img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.image-preview-item .remove-image-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex" style="height: 100vh;">
     <!-- Left Navigation Panel -->
@@ -157,111 +279,381 @@
     </div>
 </div>
 
-<!-- SKU Modal -->
+<!-- SKU Modal - Enhanced with all fields and Shopify-style layout -->
 <div class="modal fade" id="skuModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="skuModalTitle">Add SKU</h5>
+                <h5 class="modal-title" id="skuModalTitle">Add Product</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="skuForm">
                     <input type="hidden" id="skuId">
                     
-                    <!-- Image Upload Section -->
-                    <div class="mb-4">
-                        <label class="form-label">Product Images</label>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="sku-image-upload-area text-center p-3 border rounded" 
-                                     onclick="document.getElementById('skuImageFile').click()">
-                                    <i class="bi bi-image display-6 text-muted"></i>
-                                    <p class="mt-2 mb-0">Click to upload product image</p>
-                                    <p class="text-muted small">JPG, PNG, GIF up to 16MB</p>
-                                    <input type="file" id="skuImageFile" class="d-none" accept="image/*" onchange="handleSKUImageSelect(event)">
+                    <!-- Nav tabs - Shopify style -->
+                    <ul class="nav nav-tabs mb-4" id="skuTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">
+                                <i class="bi bi-info-circle"></i> Basic Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="media-tab" data-bs-toggle="tab" data-bs-target="#media" type="button">
+                                <i class="bi bi-image"></i> Media
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing" type="button">
+                                <i class="bi bi-currency-dollar"></i> Pricing
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button">
+                                <i class="bi bi-box"></i> Inventory
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button">
+                                <i class="bi bi-truck"></i> Shipping
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="variants-tab" data-bs-toggle="tab" data-bs-target="#variants" type="button">
+                                <i class="bi bi-grid-3x3"></i> Variants
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo" type="button">
+                                <i class="bi bi-search"></i> SEO
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="organization-tab" data-bs-toggle="tab" data-bs-target="#organization" type="button">
+                                <i class="bi bi-folder"></i> Organization
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab content -->
+                    <div class="tab-content" id="skuTabContent">
+                        <!-- Basic Info Tab -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Product Information</h6>
+                                    <div class="mb-3">
+                                        <label for="skuTitle" class="form-label">Title *</label>
+                                        <input type="text" class="form-control" id="skuTitle" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuHandle" class="form-label">Handle (URL Slug)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">/products/</span>
+                                            <input type="text" class="form-control" id="skuHandle">
+                                        </div>
+                                        <div class="form-text">Leave blank to auto-generate from title</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuDescription" class="form-label">Description</label>
+                                        <textarea class="form-control" id="skuDescription" rows="4"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuBodyHtml" class="form-label">HTML Description (optional)</label>
+                                        <textarea class="form-control" id="skuBodyHtml" rows="4" placeholder="<p>Rich HTML description...</p>"></textarea>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div id="skuImagePreview" class="d-none">
-                                    <img id="skuPreviewImg" class="img-thumbnail w-100" style="max-height: 150px; object-fit: cover;">
-                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="clearSKUImage()">
-                                        <i class="bi bi-x"></i> Remove Image
-                                    </button>
-                                </div>
-                                <div id="skuImageUrlSection" class="mt-2">
-                                    <label for="skuImageUrl" class="form-label small">Or enter image URL:</label>
-                                    <input type="url" class="form-control form-control-sm" id="skuImageUrl" placeholder="https://example.com/image.jpg" onchange="handleSKUImageUrl()" onblur="handleSKUImageUrl()">
+                        </div>
+                        
+                        <!-- Media Tab -->
+                        <div class="tab-pane fade" id="media" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Product Images</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="sku-image-upload-area text-center p-3 border rounded" 
+                                                 onclick="document.getElementById('skuImageFile').click()">
+                                                <i class="bi bi-image display-6 text-muted"></i>
+                                                <p class="mt-2 mb-0">Click to upload product image</p>
+                                                <p class="text-muted small">JPG, PNG, GIF up to 16MB</p>
+                                                <input type="file" id="skuImageFile" class="d-none" accept="image/*" multiple onchange="handleSKUImageSelect(event)">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div id="skuImagePreview" class="d-none">
+                                                <img id="skuPreviewImg" class="img-thumbnail w-100" style="max-height: 150px; object-fit: cover;">
+                                                <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="clearSKUImage()">
+                                                    <i class="bi bi-x"></i> Remove Image
+                                                </button>
+                                            </div>
+                                            <div id="skuImageUrlSection" class="mt-2">
+                                                <label for="skuImageUrl" class="form-label small">Or enter image URL:</label>
+                                                <input type="url" class="form-control form-control-sm" id="skuImageUrl" placeholder="https://example.com/image.jpg" onchange="handleSKUImageUrl()" onblur="handleSKUImageUrl()">
+                                            </div>
+                                            <div class="mt-3">
+                                                <label for="skuImageAlt" class="form-label">Alt Text</label>
+                                                <input type="text" class="form-control" id="skuImageAlt" placeholder="Describe the image for accessibility">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="additionalImages" class="mt-3">
+                                        <!-- Additional images will be displayed here -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Basic Information -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="skuTitle" class="form-label">Title *</label>
-                            <input type="text" class="form-control" id="skuTitle" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="skuCode" class="form-label">SKU Code</label>
-                            <input type="text" class="form-control" id="skuCode">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="skuDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="skuDescription" rows="3"></textarea>
-                    </div>
-                    
-                    <!-- Pricing and Details -->
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="skuPrice" class="form-label">Price</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="skuPrice" step="0.01" min="0">
+                        
+                        <!-- Pricing Tab -->
+                        <div class="tab-pane fade" id="pricing" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Pricing</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuPrice" class="form-label">Price *</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="skuPrice" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuComparePrice" class="form-label">Compare at Price</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="skuComparePrice" step="0.01" min="0">
+                                            </div>
+                                            <div class="form-text">Original price for showing discounts</div>
+                                        </div>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="skuTaxable" checked>
+                                        <label class="form-check-label" for="skuTaxable">
+                                            Charge taxes on this product
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="skuVendor" class="form-label">Vendor</label>
-                            <input type="text" class="form-control" id="skuVendor">
+                        
+                        <!-- Inventory Tab -->
+                        <div class="tab-pane fade" id="inventory" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Inventory Tracking</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuCode" class="form-label">SKU (Stock Keeping Unit)</label>
+                                            <input type="text" class="form-control" id="skuCode">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuBarcode" class="form-label">Barcode (ISBN, UPC, GTIN, etc)</label>
+                                            <input type="text" class="form-control" id="skuBarcode">
+                                        </div>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="skuTrackQuantity" checked>
+                                        <label class="form-check-label" for="skuTrackQuantity">
+                                            Track quantity
+                                        </label>
+                                    </div>
+                                    <div class="row" id="quantitySection">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuQuantity" class="form-label">Available Quantity</label>
+                                            <input type="number" class="form-control" id="skuQuantity" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuInventoryPolicy" class="form-label">When out of stock</label>
+                                            <select class="form-control" id="skuInventoryPolicy">
+                                                <option value="deny">Stop selling</option>
+                                                <option value="continue">Continue selling</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="skuProductType" class="form-label">Product Type</label>
-                            <input type="text" class="form-control" id="skuProductType">
+                        
+                        <!-- Shipping Tab -->
+                        <div class="tab-pane fade" id="shipping" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Shipping</h6>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="skuRequiresShipping" checked>
+                                        <label class="form-check-label" for="skuRequiresShipping">
+                                            This is a physical product
+                                        </label>
+                                    </div>
+                                    <div id="shippingDetails">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="skuWeight" class="form-label">Weight</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" id="skuWeight" step="0.01" min="0">
+                                                    <select class="form-select" id="skuWeightUnit" style="max-width: 100px;">
+                                                        <option value="kg">kg</option>
+                                                        <option value="g">g</option>
+                                                        <option value="lb">lb</option>
+                                                        <option value="oz">oz</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="skuFulfillmentService" class="form-label">Fulfillment Service</label>
+                                                <select class="form-control" id="skuFulfillmentService">
+                                                    <option value="manual">Manual</option>
+                                                    <option value="automatic">Automatic</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Inventory -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="skuQuantity" class="form-label">Stock Quantity</label>
-                            <input type="number" class="form-control" id="skuQuantity" min="0" value="0">
+                        
+                        <!-- Variants Tab -->
+                        <div class="tab-pane fade" id="variants" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Product Options</h6>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="hasVariants" onchange="toggleVariants()">
+                                        <label class="form-check-label" for="hasVariants">
+                                            This product has multiple options, like different sizes or colors
+                                        </label>
+                                    </div>
+                                    <div id="variantOptions" class="d-none">
+                                        <div id="optionsList">
+                                            <!-- Options will be added dynamically -->
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addProductOption()">
+                                            <i class="bi bi-plus"></i> Add another option
+                                        </button>
+                                        
+                                        <h6 class="mt-4">Variants</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm" id="variantsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Variant</th>
+                                                        <th>Price</th>
+                                                        <th>SKU</th>
+                                                        <th>Barcode</th>
+                                                        <th>Quantity</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="variantsList">
+                                                    <!-- Variants will be generated automatically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="skuWeight" class="form-label">Weight (kg)</label>
-                            <input type="number" class="form-control" id="skuWeight" step="0.01" min="0">
+                        
+                        <!-- SEO Tab -->
+                        <div class="tab-pane fade" id="seo" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Search Engine Listing Preview</h6>
+                                    <div class="seo-preview mb-4 p-3 bg-light rounded">
+                                        <div class="seo-title text-primary" id="seoPreviewTitle">Product Title</div>
+                                        <div class="seo-url text-success small">https://yourstore.com/products/<span id="seoPreviewHandle">product-handle</span></div>
+                                        <div class="seo-description text-muted small" id="seoPreviewDescription">Product description will appear here...</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="skuMetaTitle" class="form-label">Page Title</label>
+                                        <input type="text" class="form-control" id="skuMetaTitle" onkeyup="updateSEOPreview()">
+                                        <div class="form-text">0 of 70 characters used</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuMetaDescription" class="form-label">Meta Description</label>
+                                        <textarea class="form-control" id="skuMetaDescription" rows="3" onkeyup="updateSEOPreview()"></textarea>
+                                        <div class="form-text">0 of 160 characters used</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Categories and Tags -->
-                    <div class="mb-3">
-                        <label for="skuCategories" class="form-label">Categories</label>
-                        <select class="form-control" id="skuCategories" multiple>
-                            <!-- Categories will be loaded dynamically -->
-                        </select>
-                        <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="skuTags" class="form-label">Tags</label>
-                        <input type="text" class="form-control" id="skuTags" placeholder="Enter tags separated by commas">
-                        <div class="form-text">e.g. electronics, mobile, smartphone</div>
+                        
+                        <!-- Organization Tab -->
+                        <div class="tab-pane fade" id="organization" role="tabpanel">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Product Organization</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuVendor" class="form-label">Vendor</label>
+                                            <input type="text" class="form-control" id="skuVendor" list="vendorsList">
+                                            <datalist id="vendorsList">
+                                                <!-- Will be populated from existing vendors -->
+                                            </datalist>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuProductType" class="form-label">Product Type</label>
+                                            <input type="text" class="form-control" id="skuProductType" list="productTypesList">
+                                            <datalist id="productTypesList">
+                                                <!-- Will be populated from existing types -->
+                                            </datalist>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuCategories" class="form-label">Categories</label>
+                                        <select class="form-control" id="skuCategories" multiple>
+                                            <!-- Categories will be loaded dynamically -->
+                                        </select>
+                                        <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuTags" class="form-label">Tags</label>
+                                        <input type="text" class="form-control" id="skuTags" placeholder="vintage, cotton, summer">
+                                        <div class="form-text">Separate tags with commas</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuStatus" class="form-label">Product Status</label>
+                                            <select class="form-control" id="skuStatus">
+                                                <option value="active">Active</option>
+                                                <option value="draft">Draft</option>
+                                                <option value="archived">Archived</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="skuPublishedScope" class="form-label">Visibility</label>
+                                            <select class="form-control" id="skuPublishedScope">
+                                                <option value="web">Online Store</option>
+                                                <option value="global">All channels</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="skuTemplateSuffix" class="form-label">Theme Template</label>
+                                        <select class="form-control" id="skuTemplateSuffix">
+                                            <option value="">Default product</option>
+                                            <option value="custom">product.custom</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveSKU()">Save</button>
+                <div class="d-flex justify-content-between w-100">
+                    <div>
+                        <span class="text-muted small" id="lastSaved"></span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="saveSKU(true)">Save as Draft</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSKU()">Save Product</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

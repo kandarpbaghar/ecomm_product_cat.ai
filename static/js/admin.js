@@ -39,6 +39,11 @@ function showAddCategoryModal() {
 }
 
 async function editCategory(id) {
+    // Find the edit button and show loading state
+    const $editBtn = $(`button[onclick="editCategory(${id})"]`);
+    const originalBtnHtml = $editBtn.html();
+    $editBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+    
     try {
         const category = await apiCall(`/categories/${id}`);
         await loadCategoriesForDropdowns(); // Load categories for parent dropdown
@@ -51,6 +56,9 @@ async function editCategory(id) {
         $('#categoryModal').modal('show');
     } catch (error) {
         showToast('Failed to load category', 'error');
+    } finally {
+        // Restore button state
+        $editBtn.prop('disabled', false).html(originalBtnHtml);
     }
 }
 
@@ -62,6 +70,11 @@ async function saveCategory() {
         description: $('#categoryDescription').val(),
         parent_id: $('#categoryParent').val() || null
     };
+    
+    // Show loading state
+    const $saveBtn = $('#categoryModal .modal-footer button[onclick="saveCategory()"]');
+    const originalBtnText = $saveBtn.html();
+    $saveBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
     
     try {
         if (id) {
@@ -80,11 +93,19 @@ async function saveCategory() {
         }
     } catch (error) {
         showToast('Failed to save category', 'error');
+    } finally {
+        // Restore button state
+        $saveBtn.prop('disabled', false).html(originalBtnText);
     }
 }
 
 async function deleteCategory(id) {
     if (!confirm('Are you sure you want to delete this category?')) return;
+    
+    // Find the delete button and show loading state
+    const $deleteBtn = $(`button[onclick="deleteCategory(${id})"]`);
+    const originalBtnHtml = $deleteBtn.html();
+    $deleteBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
     
     try {
         await apiCall(`/categories/${id}`, 'DELETE');
@@ -96,6 +117,8 @@ async function deleteCategory(id) {
         }
     } catch (error) {
         showToast('Failed to delete category', 'error');
+        // Restore button state on error
+        $deleteBtn.prop('disabled', false).html(originalBtnHtml);
     }
 }
 
@@ -129,11 +152,26 @@ async function loadSKUsByCategory(categoryId) {
 }
 
 function showAddSKUModal() {
-    $('#skuModalTitle').text('Add SKU');
+    $('#skuModalTitle').text('Add Product');
     $('#skuForm')[0].reset();
     $('#skuId').val('');
     clearSKUImage();
-    loadCategoriesForDropdowns(); // Load categories for dropdown
+    clearVariants();
+    resetTabs();
+    
+    // Set defaults
+    $('#skuStatus').val('active');
+    $('#skuPublishedScope').val('web');
+    $('#skuTrackQuantity').prop('checked', true);
+    $('#skuTaxable').prop('checked', true);
+    $('#skuRequiresShipping').prop('checked', true);
+    $('#skuInventoryPolicy').val('deny');
+    $('#skuWeightUnit').val('kg');
+    $('#skuFulfillmentService').val('manual');
+    
+    loadCategoriesForDropdowns();
+    loadVendorsAndTypes();
+    $('#lastSaved').text('');
     $('#skuModal').modal('show');
 }
 
@@ -194,165 +232,225 @@ function clearSKUImage() {
 }
 
 async function editSKU(id) {
+    // Find the edit button and show loading state
+    const $editBtn = $(`button[onclick="editSKU(${id})"]`);
+    const originalBtnHtml = $editBtn.html();
+    $editBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+    
     try {
+        console.log('Loading SKU:', id);
         const sku = await apiCall(`/skus/${id}`);
-        await loadCategoriesForDropdowns(); // Load categories for dropdown
+        console.log('SKU loaded:', sku);
         
-        $('#skuModalTitle').text('Edit SKU');
+        await loadCategoriesForDropdowns();
+        await loadVendorsAndTypes();
+        
+        $('#skuModalTitle').text('Edit Product');
         $('#skuId').val(sku.id);
-        $('#skuTitle').val(sku.title);
-        $('#skuCode').val(sku.sku_code);
-        $('#skuDescription').val(sku.description);
-        $('#skuPrice').val(sku.price);
-        $('#skuVendor').val(sku.vendor);
-        $('#skuProductType').val(sku.product_type);
-        $('#skuTags').val(sku.tags);
+        
+        // Basic Info
+        $('#skuTitle').val(sku.title || '');
+        $('#skuHandle').val(sku.handle || '');
+        // Strip HTML tags from description for display in textarea
+        const plainDescription = $('<div>').html(sku.description || '').text();
+        $('#skuDescription').val(plainDescription);
+        $('#skuBodyHtml').val(sku.body_html || '');
+        
+        // Pricing
+        $('#skuPrice').val(sku.price || 0);
+        $('#skuComparePrice').val(sku.compare_at_price || '');
+        $('#skuTaxable').prop('checked', sku.taxable !== false);
+        
+        // Inventory
+        $('#skuCode').val(sku.sku_code || '');
+        $('#skuBarcode').val(sku.barcode || '');
+        $('#skuTrackQuantity').prop('checked', sku.track_quantity !== false);
         $('#skuQuantity').val(sku.quantity || 0);
+        $('#skuInventoryPolicy').val(sku.inventory_policy || 'deny');
+        
+        // Shipping
+        $('#skuRequiresShipping').prop('checked', sku.requires_shipping !== false);
         $('#skuWeight').val(sku.weight || 0);
+        $('#skuWeightUnit').val(sku.weight_unit || 'kg');
+        $('#skuFulfillmentService').val(sku.fulfillment_service || 'manual');
+        
+        // SEO
+        $('#skuMetaTitle').val(sku.meta_title || '');
+        $('#skuMetaDescription').val(sku.meta_description || '');
+        updateSEOPreview();
+        
+        // Organization
+        $('#skuVendor').val(sku.vendor || '');
+        $('#skuProductType').val(sku.product_type || '');
+        // Handle tags - convert array back to comma-separated string
+        const tagsValue = Array.isArray(sku.tags) ? sku.tags.join(', ') : (sku.tags || '');
+        $('#skuTags').val(tagsValue);
+        $('#skuStatus').val(sku.status || 'active');
+        $('#skuPublishedScope').val(sku.published_scope || 'web');
+        $('#skuTemplateSuffix').val(sku.template_suffix || '');
         
         // Set selected categories
-        const categoryIds = sku.categories.map(cat => cat.id);
-        $('#skuCategories').val(categoryIds);
-        
-        // Load existing image if available
-        clearSKUImage(); // Clear any previous selection
-        if (sku.images && sku.images.length > 0) {
-            const existingImage = sku.images[0];
-            selectedSKUImageUrl = existingImage.url;
-            displaySKUImagePreviewFromUrl(existingImage.url);
-            $('#skuImageUrl').val(existingImage.url);
+        if (sku.categories && Array.isArray(sku.categories)) {
+            const categoryIds = sku.categories.map(cat => cat.id);
+            $('#skuCategories').val(categoryIds);
         }
         
+        // Load existing images
+        clearSKUImage();
+        if (sku.images && sku.images.length > 0) {
+            loadExistingImages(sku.images);
+        }
+        
+        // Load variants and options
+        if (sku.options && sku.options.length > 0) {
+            $('#hasVariants').prop('checked', true);
+            toggleVariants();
+            loadExistingOptions(sku.options);
+            if (sku.variants && sku.variants.length > 0) {
+                loadExistingVariants(sku.variants);
+            }
+        }
+        
+        // Update last saved
+        if (sku.updated_at) {
+            $('#lastSaved').text(`Last saved: ${new Date(sku.updated_at).toLocaleString()}`);
+        }
+        
+        resetTabs();
         $('#skuModal').modal('show');
     } catch (error) {
-        showToast('Failed to load SKU', 'error');
+        console.error('Error loading product:', error);
+        showToast('Failed to load product: ' + (error.message || 'Unknown error'), 'error');
+    } finally {
+        // Restore button state
+        $editBtn.prop('disabled', false).html(originalBtnHtml);
     }
 }
 
-async function saveSKU() {
+async function saveSKU(isDraft = false) {
     const id = $('#skuId').val();
     
-    // Prepare form data for potential file upload
-    const formData = new FormData();
-    formData.append('title', $('#skuTitle').val());
-    formData.append('sku_code', $('#skuCode').val());
-    formData.append('description', $('#skuDescription').val());
-    formData.append('price', parseFloat($('#skuPrice').val()) || 0);
-    formData.append('vendor', $('#skuVendor').val());
-    formData.append('product_type', $('#skuProductType').val());
-    formData.append('tags', $('#skuTags').val());
-    formData.append('quantity', parseInt($('#skuQuantity').val()) || 0);
-    formData.append('weight', parseFloat($('#skuWeight').val()) || 0);
+    // Show loading state on all save buttons
+    const $saveBtns = $('#skuModal .modal-footer button[onclick*="saveSKU"]');
+    const originalBtnTexts = $saveBtns.map(function() { return $(this).html(); }).get();
+    $saveBtns.prop('disabled', true);
     
-    // Add category IDs
-    const categoryIds = $('#skuCategories').val();
-    if (categoryIds && categoryIds.length > 0) {
-        categoryIds.forEach(catId => {
-            formData.append('category_ids', parseInt(catId));
-        });
-    }
+    // Update the clicked button specifically
+    $saveBtns.each(function() {
+        const $btn = $(this);
+        if ($btn.attr('onclick').includes('true') && isDraft) {
+            $btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Saving as Draft...');
+        } else if ($btn.attr('onclick').includes('false') || !$btn.attr('onclick').includes('true')) {
+            if (!isDraft) {
+                $btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+            }
+        }
+    });
     
-    // Add image if selected
-    if (selectedSKUImage) {
-        formData.append('image', selectedSKUImage);
-    } else if (selectedSKUImageUrl) {
-        formData.append('image_url', selectedSKUImageUrl);
+    // Prepare comprehensive data object
+    const data = {
+        // Basic Info
+        title: $('#skuTitle').val(),
+        handle: $('#skuHandle').val() || $('#skuTitle').val().toLowerCase().replace(/\s+/g, '-'),
+        description: $('#skuDescription').val(),
+        body_html: $('#skuBodyHtml').val(),
+        
+        // Pricing
+        price: parseFloat($('#skuPrice').val()) || 0,
+        compare_at_price: parseFloat($('#skuComparePrice').val()) || null,
+        taxable: $('#skuTaxable').is(':checked'),
+        
+        // Inventory
+        sku_code: $('#skuCode').val(),
+        barcode: $('#skuBarcode').val(),
+        track_quantity: $('#skuTrackQuantity').is(':checked'),
+        quantity: parseInt($('#skuQuantity').val()) || 0,
+        inventory_policy: $('#skuInventoryPolicy').val(),
+        
+        // Shipping
+        requires_shipping: $('#skuRequiresShipping').is(':checked'),
+        weight: parseFloat($('#skuWeight').val()) || 0,
+        weight_unit: $('#skuWeightUnit').val(),
+        fulfillment_service: $('#skuFulfillmentService').val(),
+        
+        // SEO
+        meta_title: $('#skuMetaTitle').val(),
+        meta_description: $('#skuMetaDescription').val(),
+        
+        // Organization
+        vendor: $('#skuVendor').val(),
+        product_type: $('#skuProductType').val(),
+        tags: $('#skuTags').val(),
+        status: isDraft ? 'draft' : $('#skuStatus').val(),
+        published_scope: $('#skuPublishedScope').val(),
+        template_suffix: $('#skuTemplateSuffix').val(),
+        
+        // Categories
+        category_ids: $('#skuCategories').val() ? $('#skuCategories').val().map(id => parseInt(id)) : []
+    };
+    
+    // Handle variants if enabled
+    if ($('#hasVariants').is(':checked')) {
+        data.options = collectProductOptions();
+        data.variants = collectVariantData();
     }
     
     try {
         let response;
-        if (id) {
-            // For updates, check if we have an image to upload
-            if (selectedSKUImage || selectedSKUImageUrl) {
-                // Use multipart form data for image upload
-                const formData = new FormData();
-                formData.append('title', $('#skuTitle').val());
-                formData.append('sku_code', $('#skuCode').val());
-                formData.append('description', $('#skuDescription').val());
-                formData.append('price', parseFloat($('#skuPrice').val()) || 0);
-                formData.append('vendor', $('#skuVendor').val());
-                formData.append('product_type', $('#skuProductType').val());
-                formData.append('tags', $('#skuTags').val());
-                formData.append('quantity', parseInt($('#skuQuantity').val()) || 0);
-                formData.append('weight', parseFloat($('#skuWeight').val()) || 0);
-                
-                // Add category IDs
-                if (categoryIds && categoryIds.length > 0) {
-                    categoryIds.forEach(catId => {
-                        formData.append('category_ids', parseInt(catId));
-                    });
+        
+        // Check if we need to use FormData (for image uploads)
+        if (selectedSKUImage || (selectedSKUImages && selectedSKUImages.length > 0)) {
+            const formData = new FormData();
+            
+            // Add all data fields
+            Object.keys(data).forEach(key => {
+                if (Array.isArray(data[key])) {
+                    if (key === 'category_ids') {
+                        data[key].forEach(val => formData.append('category_ids', val));
+                    } else {
+                        formData.append(key, JSON.stringify(data[key]));
+                    }
+                } else if (data[key] !== null && data[key] !== undefined) {
+                    formData.append(key, data[key]);
                 }
-                
-                // Add image
-                if (selectedSKUImage) {
-                    formData.append('image', selectedSKUImage);
-                } else if (selectedSKUImageUrl) {
-                    formData.append('image_url', selectedSKUImageUrl);
-                }
-                
-                console.log('Sending form data with image for update');
-                response = await fetch(`/api/skus/${id}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to update SKU');
-                }
-                response = await response.json();
-            } else {
-                // Use regular JSON API for updates without images
-                const data = {
-                    title: $('#skuTitle').val(),
-                    sku_code: $('#skuCode').val(),
-                    description: $('#skuDescription').val(),
-                    price: parseFloat($('#skuPrice').val()) || 0,
-                    vendor: $('#skuVendor').val(),
-                    product_type: $('#skuProductType').val(),
-                    tags: $('#skuTags').val(),
-                    quantity: parseInt($('#skuQuantity').val()) || 0,
-                    weight: parseFloat($('#skuWeight').val()) || 0,
-                    category_ids: categoryIds ? categoryIds.map(id => parseInt(id)) : []
-                };
-                
-                console.log('Sending JSON data for update (no image)');
-                response = await apiCall(`/skus/${id}`, 'PUT', data);
+            });
+            
+            // Add images
+            if (selectedSKUImage) {
+                formData.append('image', selectedSKUImage);
             }
-            showToast('SKU updated successfully');
-        } else {
-            // For new SKUs, check if we have an image
-            if (selectedSKUImage || selectedSKUImageUrl) {
-                // Use multipart form data for image upload
-                response = await fetch('/api/skus', {
-                    method: 'POST',
-                    body: formData
+            if (selectedSKUImages && selectedSKUImages.length > 0) {
+                selectedSKUImages.forEach((img, index) => {
+                    formData.append(`images`, img.file);
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to create SKU');
-                }
-                response = await response.json();
+            }
+            
+            const url = id ? `/api/skus/${id}` : '/api/skus';
+            const method = id ? 'PUT' : 'POST';
+            
+            response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to save product');
+            }
+            response = await response.json();
+        } else {
+            // Use regular JSON API
+            if (id) {
+                response = await apiCall(`/skus/${id}`, 'PUT', data);
             } else {
-                // Use regular JSON API
-                const data = {
-                    title: $('#skuTitle').val(),
-                    sku_code: $('#skuCode').val(),
-                    description: $('#skuDescription').val(),
-                    price: parseFloat($('#skuPrice').val()) || 0,
-                    vendor: $('#skuVendor').val(),
-                    product_type: $('#skuProductType').val(),
-                    tags: $('#skuTags').val(),
-                    quantity: parseInt($('#skuQuantity').val()) || 0,
-                    weight: parseFloat($('#skuWeight').val()) || 0,
-                    category_ids: categoryIds ? categoryIds.map(id => parseInt(id)) : []
-                };
                 response = await apiCall('/skus', 'POST', data);
             }
-            showToast('SKU created successfully');
         }
         
+        showToast(`Product ${id ? 'updated' : 'created'} successfully`);
         $('#skuModal').modal('hide');
-        clearSKUImage(); // Clear image selection
+        clearSKUImage();
+        clearVariants();
         
         // Refresh the SKU list if it's currently displayed
         const contentFrame = document.getElementById('contentFrame');
@@ -360,13 +458,23 @@ async function saveSKU() {
             contentFrame.contentWindow.loadSKUs();
         }
     } catch (error) {
-        console.error('Error saving SKU:', error);
-        showToast('Failed to save SKU', 'error');
+        console.error('Error saving product:', error);
+        showToast(error.message || 'Failed to save product', 'error');
+    } finally {
+        // Restore button states
+        $saveBtns.each(function(index) {
+            $(this).prop('disabled', false).html(originalBtnTexts[index]);
+        });
     }
 }
 
 async function deleteSKU(id) {
     if (!confirm('Are you sure you want to delete this SKU?')) return;
+    
+    // Find the delete button and show loading state
+    const $deleteBtn = $(`button[onclick="deleteSKU(${id})"]`);
+    const originalBtnHtml = $deleteBtn.html();
+    $deleteBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
     
     try {
         await apiCall(`/skus/${id}`, 'DELETE');
@@ -378,6 +486,8 @@ async function deleteSKU(id) {
         }
     } catch (error) {
         showToast('Failed to delete SKU', 'error');
+        // Restore button state on error
+        $deleteBtn.prop('disabled', false).html(originalBtnHtml);
     }
 }
 
@@ -686,4 +796,295 @@ async function testAPI() {
     } catch (error) {
         $('#apiResponse').text(`Error: ${error.message}`);
     }
+}
+
+// New helper functions for enhanced SKU modal
+
+// Tab management
+function resetTabs() {
+    $('#skuTabs .nav-link').removeClass('active');
+    $('#skuTabs .nav-link:first').addClass('active');
+    $('#skuTabContent .tab-pane').removeClass('show active');
+    $('#skuTabContent .tab-pane:first').addClass('show active');
+}
+
+// Load vendors and product types for datalists
+async function loadVendorsAndTypes() {
+    try {
+        const response = await fetch('/api/catalog/filters');
+        const data = await response.json();
+        
+        // Populate vendors datalist
+        const vendorsList = $('#vendorsList');
+        vendorsList.empty();
+        if (data.vendors) {
+            data.vendors.forEach(vendor => {
+                vendorsList.append(`<option value="${vendor.name}">`);
+            });
+        }
+        
+        // Populate product types datalist
+        const typesList = $('#productTypesList');
+        typesList.empty();
+        if (data.productTypes) {
+            data.productTypes.forEach(type => {
+                typesList.append(`<option value="${type.name}">`);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading vendors and types:', error);
+    }
+}
+
+// SEO Preview
+function updateSEOPreview() {
+    const title = $('#skuMetaTitle').val() || $('#skuTitle').val() || 'Product Title';
+    const titleVal = $('#skuTitle').val() || '';
+    const handle = $('#skuHandle').val() || titleVal.toLowerCase().replace(/\s+/g, '-') || 'product-handle';
+    const description = $('#skuMetaDescription').val() || $('#skuDescription').val() || 'Product description will appear here...';
+    
+    $('#seoPreviewTitle').text(title.substring(0, 70));
+    $('#seoPreviewHandle').text(handle);
+    $('#seoPreviewDescription').text(description.substring(0, 160));
+    
+    // Update character counts
+    const titleLength = ($('#skuMetaTitle').val() || '').length;
+    const descLength = ($('#skuMetaDescription').val() || '').length;
+    
+    $('#skuMetaTitle').next('.form-text').text(`${titleLength} of 70 characters used`);
+    $('#skuMetaDescription').next('.form-text').text(`${descLength} of 160 characters used`);
+}
+
+// Track quantity toggle
+$('#skuTrackQuantity').on('change', function() {
+    if ($(this).is(':checked')) {
+        $('#quantitySection').show();
+    } else {
+        $('#quantitySection').hide();
+    }
+});
+
+// Shipping toggle
+$('#skuRequiresShipping').on('change', function() {
+    if ($(this).is(':checked')) {
+        $('#shippingDetails').show();
+    } else {
+        $('#shippingDetails').hide();
+    }
+});
+
+// Variants management
+let productOptions = [];
+let selectedSKUImages = [];
+
+function toggleVariants() {
+    if ($('#hasVariants').is(':checked')) {
+        $('#variantOptions').removeClass('d-none');
+        if (productOptions.length === 0) {
+            addProductOption();
+        }
+    } else {
+        $('#variantOptions').addClass('d-none');
+    }
+}
+
+function addProductOption() {
+    const optionIndex = productOptions.length;
+    const optionHtml = `
+        <div class="option-item mb-3" data-option-index="${optionIndex}">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control option-name" placeholder="Option name (e.g., Size)" 
+                           onchange="updateVariants()">
+                </div>
+                <div class="col-md-7">
+                    <input type="text" class="form-control option-values-input" 
+                           placeholder="Option values (comma-separated, e.g., Small, Medium, Large)"
+                           onchange="updateVariants()">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeOption(${optionIndex})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#optionsList').append(optionHtml);
+    productOptions.push({ name: '', values: [] });
+}
+
+function removeOption(index) {
+    $(`.option-item[data-option-index="${index}"]`).remove();
+    productOptions.splice(index, 1);
+    updateVariants();
+}
+
+function updateVariants() {
+    // Collect current options
+    productOptions = [];
+    $('.option-item').each(function() {
+        const name = $(this).find('.option-name').val();
+        const valuesStr = $(this).find('.option-values-input').val();
+        const values = valuesStr.split(',').map(v => v.trim()).filter(v => v);
+        
+        if (name && values.length > 0) {
+            productOptions.push({ name, values });
+        }
+    });
+    
+    // Generate variant combinations
+    generateVariantCombinations();
+}
+
+function generateVariantCombinations() {
+    if (productOptions.length === 0) {
+        $('#variantsList').empty();
+        return;
+    }
+    
+    const combinations = cartesianProduct(productOptions.map(opt => opt.values));
+    const tbody = $('#variantsList');
+    tbody.empty();
+    
+    combinations.forEach((combo, index) => {
+        const variantTitle = Array.isArray(combo) ? combo.join(' / ') : combo;
+        const row = `
+            <tr data-variant-index="${index}">
+                <td>${variantTitle}</td>
+                <td><input type="number" class="form-control form-control-sm variant-price" step="0.01" value="${$('#skuPrice').val()}"></td>
+                <td><input type="text" class="form-control form-control-sm variant-sku"></td>
+                <td><input type="text" class="form-control form-control-sm variant-barcode"></td>
+                <td><input type="number" class="form-control form-control-sm variant-quantity" value="0"></td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeVariant(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+function cartesianProduct(arrays) {
+    if (arrays.length === 0) return [];
+    if (arrays.length === 1) return arrays[0].map(x => [x]);
+    
+    const result = [];
+    const restProduct = cartesianProduct(arrays.slice(1));
+    
+    arrays[0].forEach(item => {
+        restProduct.forEach(restItem => {
+            result.push([item].concat(restItem));
+        });
+    });
+    
+    return result;
+}
+
+function removeVariant(index) {
+    $(`tr[data-variant-index="${index}"]`).remove();
+}
+
+function collectProductOptions() {
+    return productOptions.map(opt => ({
+        name: opt.name,
+        values: JSON.stringify(opt.values)
+    }));
+}
+
+function collectVariantData() {
+    const variants = [];
+    $('#variantsList tr').each(function() {
+        const combo = $(this).find('td:first').text().split(' / ');
+        const variant = {
+            title: combo.join(' / '),
+            price: parseFloat($(this).find('.variant-price').val()) || 0,
+            sku_code: $(this).find('.variant-sku').val(),
+            barcode: $(this).find('.variant-barcode').val(),
+            inventory_quantity: parseInt($(this).find('.variant-quantity').val()) || 0,
+        };
+        
+        // Map options to variant
+        productOptions.forEach((opt, index) => {
+            if (index === 0) variant.option1 = combo[index];
+            if (index === 1) variant.option2 = combo[index];
+            if (index === 2) variant.option3 = combo[index];
+        });
+        
+        variants.push(variant);
+    });
+    return variants;
+}
+
+function loadExistingOptions(options) {
+    $('#optionsList').empty();
+    productOptions = [];
+    
+    options.forEach(opt => {
+        // values is already an array from the API, no need to parse
+        const values = Array.isArray(opt.values) ? opt.values : [];
+        productOptions.push({ name: opt.name, values: values });
+        
+        const optionHtml = `
+            <div class="option-item mb-3" data-option-index="${productOptions.length - 1}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control option-name" value="${opt.name}" 
+                               placeholder="Option name (e.g., Size)" onchange="updateVariants()">
+                    </div>
+                    <div class="col-md-7">
+                        <input type="text" class="form-control option-values-input" 
+                               value="${values.join(', ')}"
+                               placeholder="Option values (comma-separated)"
+                               onchange="updateVariants()">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="removeOption(${productOptions.length - 1})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#optionsList').append(optionHtml);
+    });
+}
+
+function loadExistingVariants(variants) {
+    // Variants will be regenerated based on options
+    setTimeout(() => {
+        // Update variant values
+        variants.forEach((variant, index) => {
+            const row = $(`tr[data-variant-index="${index}"]`);
+            if (row.length) {
+                row.find('.variant-price').val(variant.price);
+                row.find('.variant-sku').val(variant.sku_code);
+                row.find('.variant-barcode').val(variant.barcode);
+                row.find('.variant-quantity').val(variant.inventory_quantity);
+            }
+        });
+    }, 100);
+}
+
+function loadExistingImages(images) {
+    // For now, just load the first image
+    if (images.length > 0) {
+        const firstImage = images[0];
+        selectedSKUImageUrl = firstImage.url;
+        displaySKUImagePreviewFromUrl(firstImage.url);
+        $('#skuImageUrl').val(firstImage.url);
+        $('#skuImageAlt').val(firstImage.alt_text || '');
+    }
+}
+
+function clearVariants() {
+    productOptions = [];
+    $('#optionsList').empty();
+    $('#variantsList').empty();
+    $('#hasVariants').prop('checked', false);
+    $('#variantOptions').addClass('d-none');
 }

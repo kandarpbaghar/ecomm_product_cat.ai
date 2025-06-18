@@ -4,6 +4,8 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import threading
+import json
+
 
 ai_ecomm_cat_bp = Blueprint('ai_ecomm_cat', __name__)
 api = Api(ai_ecomm_cat_bp)
@@ -164,6 +166,23 @@ class SKUListResource(Resource):
         if not data.get('title'):
             return {'error': 'SKU title is required'}, 400
         
+        # Parse boolean values from form data if needed
+        track_quantity = data.get('track_quantity', True)
+        if isinstance(track_quantity, str):
+            track_quantity = track_quantity.lower() in ['true', '1', 'yes', 'on']
+        
+        taxable = data.get('taxable', True)
+        if isinstance(taxable, str):
+            taxable = taxable.lower() in ['true', '1', 'yes', 'on']
+            
+        requires_shipping = data.get('requires_shipping', True)
+        if isinstance(requires_shipping, str):
+            requires_shipping = requires_shipping.lower() in ['true', '1', 'yes', 'on']
+        
+        # Handle empty string for unique fields - convert to None
+        sku_code_value = data.get('sku_code')
+        sku_code_value = sku_code_value if sku_code_value else None
+        
         sku = SKU(
             title=data['title'],
             handle=data.get('handle', data['title'].lower().replace(' ', '-')),
@@ -172,12 +191,19 @@ class SKUListResource(Resource):
             vendor=data.get('vendor'),
             product_type=data.get('product_type'),
             tags=data.get('tags'),
+            status=data.get('status', 'active'),
+            published_scope=data.get('published_scope', 'web'),
+            template_suffix=data.get('template_suffix'),
             price=data.get('price'),
             compare_at_price=data.get('compare_at_price'),
-            sku_code=data.get('sku_code'),
+            taxable=taxable,
+            sku_code=sku_code_value,
             barcode=data.get('barcode'),
-            track_quantity=data.get('track_quantity', True),
+            track_quantity=track_quantity,
             quantity=data.get('quantity', 0),
+            inventory_policy=data.get('inventory_policy', 'deny'),
+            fulfillment_service=data.get('fulfillment_service', 'manual'),
+            requires_shipping=requires_shipping,
             weight=data.get('weight'),
             weight_unit=data.get('weight_unit', 'kg'),
             meta_title=data.get('meta_title'),
@@ -241,6 +267,46 @@ class SKUListResource(Resource):
             except Exception as e:
                 print(f"Error saving image URL: {e}")
         
+        # Handle product options and variants
+        if 'options' in data and data.get('options'):
+            try:
+                # Parse options if they're sent as JSON string
+                options = data['options']
+                if isinstance(options, str):
+                    options = json.loads(options)
+                
+                # Create product options
+                for opt in options:
+                    product_option = ProductOption(
+                        sku_id=sku.id,
+                        name=opt.get('name', ''),
+                        position=options.index(opt) + 1,
+                        values=opt.get('values', '[]') if isinstance(opt.get('values'), str) else json.dumps(opt.get('values', []))
+                    )
+                    db.session.add(product_option)
+                
+                # Handle variants if provided
+                if 'variants' in data and data['variants']:
+                    variants = data['variants']
+                    if isinstance(variants, str):
+                        variants = json.loads(variants)
+                    
+                    for var in variants:
+                        variant = SKUVariant(
+                            sku_id=sku.id,
+                            title=var.get('title', ''),
+                            price=var.get('price', sku.price),
+                            sku_code=var.get('sku_code', ''),
+                            barcode=var.get('barcode', ''),
+                            inventory_quantity=var.get('inventory_quantity', 0),
+                            option1=var.get('option1'),
+                            option2=var.get('option2'),
+                            option3=var.get('option3')
+                        )
+                        db.session.add(variant)
+            except Exception as e:
+                print(f"Error handling options/variants: {e}")
+        
         db.session.commit()
         
         # Add to Weaviate
@@ -282,6 +348,19 @@ class SKUResource(Resource):
             print(f"Updating SKU {sku_id} with JSON data: {data}")
             print(f"Image URL in data: {image_url}")
         
+        # Parse boolean values from form data if needed
+        track_quantity = data.get('track_quantity', sku.track_quantity)
+        if isinstance(track_quantity, str):
+            track_quantity = track_quantity.lower() in ['true', '1', 'yes', 'on']
+        
+        taxable = data.get('taxable', sku.taxable)
+        if isinstance(taxable, str):
+            taxable = taxable.lower() in ['true', '1', 'yes', 'on']
+            
+        requires_shipping = data.get('requires_shipping', sku.requires_shipping)
+        if isinstance(requires_shipping, str):
+            requires_shipping = requires_shipping.lower() in ['true', '1', 'yes', 'on']
+        
         sku.title = data.get('title', sku.title)
         sku.handle = data.get('handle', sku.handle)
         sku.description = data.get('description', sku.description)
@@ -290,12 +369,20 @@ class SKUResource(Resource):
         sku.product_type = data.get('product_type', sku.product_type)
         sku.tags = data.get('tags', sku.tags)
         sku.status = data.get('status', sku.status)
+        sku.published_scope = data.get('published_scope', sku.published_scope)
+        sku.template_suffix = data.get('template_suffix', sku.template_suffix)
         sku.price = data.get('price', sku.price)
         sku.compare_at_price = data.get('compare_at_price', sku.compare_at_price)
-        sku.sku_code = data.get('sku_code', sku.sku_code)
+        sku.taxable = taxable
+        # Handle empty string for unique fields - convert to None
+        sku_code_value = data.get('sku_code', sku.sku_code)
+        sku.sku_code = sku_code_value if sku_code_value else None
         sku.barcode = data.get('barcode', sku.barcode)
-        sku.track_quantity = data.get('track_quantity', sku.track_quantity)
+        sku.track_quantity = track_quantity
         sku.quantity = data.get('quantity', sku.quantity)
+        sku.inventory_policy = data.get('inventory_policy', sku.inventory_policy)
+        sku.fulfillment_service = data.get('fulfillment_service', sku.fulfillment_service)
+        sku.requires_shipping = requires_shipping
         sku.weight = data.get('weight', sku.weight)
         sku.weight_unit = data.get('weight_unit', sku.weight_unit)
         sku.meta_title = data.get('meta_title', sku.meta_title)
@@ -372,6 +459,51 @@ class SKUResource(Resource):
         else:
             print(f"No image provided. File: {image_file}, URL: {image_url}")
         
+        # Handle product options and variants
+        if 'options' in data:
+            try:
+                # Delete existing options and variants
+                ProductOption.query.filter_by(sku_id=sku.id).delete()
+                SKUVariant.query.filter_by(sku_id=sku.id).delete()
+                
+                # Parse and add new options
+                options = data['options']
+                if isinstance(options, str):
+                    options = json.loads(options)
+                
+                if options:  # Only process if there are options
+                    # Create product options
+                    for opt in options:
+                        product_option = ProductOption(
+                            sku_id=sku.id,
+                            name=opt.get('name', ''),
+                            position=options.index(opt) + 1,
+                            values=opt.get('values', '[]') if isinstance(opt.get('values'), str) else json.dumps(opt.get('values', []))
+                        )
+                        db.session.add(product_option)
+                    
+                    # Handle variants if provided
+                    if 'variants' in data and data['variants']:
+                        variants = data['variants']
+                        if isinstance(variants, str):
+                            variants = json.loads(variants)
+                        
+                        for var in variants:
+                            variant = SKUVariant(
+                                sku_id=sku.id,
+                                title=var.get('title', ''),
+                                price=var.get('price', sku.price),
+                                sku_code=var.get('sku_code', ''),
+                                barcode=var.get('barcode', ''),
+                                inventory_quantity=var.get('inventory_quantity', 0),
+                                option1=var.get('option1'),
+                                option2=var.get('option2'),
+                                option3=var.get('option3')
+                            )
+                            db.session.add(variant)
+            except Exception as e:
+                print(f"Error handling options/variants: {e}")
+        
         db.session.commit()
         
         # Update in Weaviate
@@ -410,7 +542,7 @@ class SearchResource(Resource):
         # Parse catalog filters if provided
         filters_json = request.form.get('filters', '{}')
         try:
-            import json
+            
             catalog_filters = json.loads(filters_json) if filters_json else {}
         except Exception as e:
             print(f"Error parsing filters: {e}, filters_json: {filters_json}")
@@ -911,6 +1043,29 @@ class ShopifySyncResource(Resource):
                 
                 db.session.commit()
                 
+                # For incremental sync, find the last successful sync
+                updated_at_min = None
+                new_products = 0
+                updated_products = 0
+                
+                if sync_log.sync_type == 'incremental':
+                    last_sync = SyncLog.query.filter(
+                        SyncLog.status == 'completed',
+                        SyncLog.sync_type.in_(['full', 'incremental']),
+                        SyncLog.id != sync_log_id
+                    ).order_by(SyncLog.completed_at.desc()).first()
+                    
+                    if last_sync and last_sync.completed_at:
+                        # Use the completion time of the last sync as the starting point
+                        # Subtract 5 minutes to account for any overlap
+                        from datetime import timedelta
+                        sync_from = last_sync.completed_at - timedelta(minutes=5)
+                        updated_at_min = sync_from.strftime('%Y-%m-%dT%H:%M:%SZ')
+                        print(f"Incremental sync from: {updated_at_min}")
+                    else:
+                        print("No previous sync found, performing full sync instead")
+                        sync_log.sync_type = 'full'
+                
                 # Sync products
                 page_info = None
                 total_products = 0
@@ -918,7 +1073,10 @@ class ShopifySyncResource(Resource):
                 failed_products = 0
                 
                 while True:
-                    result = shopify_service.get_products(page_info=page_info)
+                    result = shopify_service.get_products(
+                        page_info=page_info,
+                        updated_at_min=updated_at_min if sync_log.sync_type == 'incremental' else None
+                    )
                     products = result['products']
                     page_info = result['page_info']
                     
@@ -933,8 +1091,13 @@ class ShopifySyncResource(Resource):
                             
                             # Create or update SKU
                             sku = SKU.query.filter_by(shopify_id=transformed['shopify_id']).first()
+                            is_new = sku is None
+                            
                             if not sku:
                                 sku = SKU()
+                                new_products += 1
+                            else:
+                                updated_products += 1
                             
                             # Update SKU fields
                             for key, value in transformed.items():
@@ -949,7 +1112,7 @@ class ShopifySyncResource(Resource):
                             for img_data in transformed.get('images', []):
                                 # Convert variant_ids list to JSON string if present
                                 if 'variant_ids' in img_data and isinstance(img_data['variant_ids'], list):
-                                    import json
+                                    
                                     img_data['variant_ids'] = json.dumps(img_data['variant_ids'])
                                 image = SKUImage(sku_id=sku.id, **img_data)
                                 db.session.add(image)
@@ -964,7 +1127,7 @@ class ShopifySyncResource(Resource):
                             from models.sku import ProductOption
                             ProductOption.query.filter_by(sku_id=sku.id).delete()
                             for opt_data in transformed.get('options', []):
-                                import json
+                                
                                 option = ProductOption(
                                     sku_id=sku.id,
                                     shopify_id=opt_data.get('shopify_id'),
@@ -1001,10 +1164,17 @@ class ShopifySyncResource(Resource):
                     if not page_info:
                         break
                 
-                # Update sync log
+                # Update sync log with final results
                 sync_log.status = 'completed'
                 sync_log.completed_at = datetime.utcnow()
+                
+                # Add detailed message for incremental sync
+                if sync_log.sync_type == 'incremental':
+                    sync_log.error_message = f"Incremental sync completed. New: {new_products}, Updated: {updated_products}, Failed: {failed_products}"
+                    print(f"Incremental sync results - New: {new_products}, Updated: {updated_products}, Failed: {failed_products}")
+                
                 db.session.commit()
+                print(f"Sync completed successfully. Total products: {total_products}")
                 
             except Exception as e:
                 print(f"Sync error: {e}")
@@ -2043,7 +2213,7 @@ class CatalogFiltersResource(Resource):
                 if option.name not in options:
                     options[option.name] = {}
                 
-                import json
+                
                 try:
                     values = json.loads(option.values) if option.values else []
                     for value in values:

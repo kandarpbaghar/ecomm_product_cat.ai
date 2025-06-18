@@ -49,14 +49,26 @@ class ShopifyService:
             print(f"Shopify connection test failed: {e}")
             return False
     
-    def get_products(self, limit: int = 250, page_info: str = None) -> Dict:
-        """Get products from Shopify"""
+    def get_products(self, limit: int = 250, page_info: str = None, updated_at_min: str = None) -> Dict:
+        """Get products from Shopify with optional date filter for incremental sync
+        
+        Args:
+            limit: Number of products per page (max 250)
+            page_info: Pagination cursor
+            updated_at_min: ISO 8601 date string to get products updated after this date
+            
+        Returns:
+            Dict with 'products' list and 'page_info' for pagination
+        """
         if not self.is_configured():
             return {'products': [], 'page_info': None}
         
         params = {'limit': limit}
         if page_info:
             params['page_info'] = page_info
+        if updated_at_min:
+            params['updated_at_min'] = updated_at_min
+            print(f"Fetching products updated since: {updated_at_min}")
         
         try:
             response = requests.get(
@@ -71,8 +83,11 @@ class ShopifyService:
                 link_header = response.headers.get('Link', '')
                 next_page_info = self._extract_page_info(link_header, 'next')
                 
+                products = response.json().get('products', [])
+                print(f"Fetched {len(products)} products from Shopify")
+                
                 return {
-                    'products': response.json().get('products', []),
+                    'products': products,
                     'page_info': next_page_info
                 }
             else:

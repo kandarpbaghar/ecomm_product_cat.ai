@@ -9,7 +9,9 @@
       "Bash(sed:*)",
       "Bash(mkdir:*)",
       "Bash(rm:*)",
-      "WebFetch(domain:google.github.io)"
+      "WebFetch(domain:google.github.io)",
+      "Bash(lsof:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

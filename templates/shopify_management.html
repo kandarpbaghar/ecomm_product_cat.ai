@@ -96,6 +96,10 @@
                                 <button class="btn btn-success" onclick="startFullSync()" id="fullSyncBtn">
                                     <i class="bi bi-arrow-repeat"></i> Full Sync
                                 </button>
+                                <button class="btn btn-primary" onclick="startIncrementalSync()" id="incrementalSyncBtn" 
+                                        title="Only sync products updated since last sync">
+                                    <i class="bi bi-arrow-clockwise"></i> Incremental Sync
+                                </button>
                                 <button class="btn btn-info" onclick="startTestSync()" id="testSyncBtn">
                                     <i class="bi bi-play-circle"></i> Test Sync (Demo)
                                 </button>
@@ -541,6 +545,15 @@ async function startFullSync() {
     }
     
     await startSync('full');
+}
+
+// Start incremental sync
+async function startIncrementalSync() {
+    if (!confirm('This will sync only products updated since the last sync. Continue?')) {
+        return;
+    }
+    
+    await startSync('incremental');
 }
 
 // Start test sync

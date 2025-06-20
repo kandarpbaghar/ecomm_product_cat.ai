@@ -1,6 +1,7 @@
 // Admin functionality
 $(document).ready(function() {
     // Don't auto-load categories anymore since they're in a dedicated page
+    loadCompanyLogoSidebar();
 });
 
 // Load categories management page
@@ -145,6 +146,25 @@ function loadVectorConfig() {
 // Load Settings page
 function loadSettings() {
     document.getElementById('contentFrame').src = '/admin/settings';
+}
+
+// Load company logo for sidebar
+function loadCompanyLogoSidebar() {
+    fetch('/api/settings/logo')
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('No logo found');
+        })
+        .then(data => {
+            if (data.logo_url) {
+                document.getElementById('company-logo-sidebar').src = data.logo_url;
+            }
+        })
+        .catch(error => {
+            console.log('No company logo set yet');
+        });
 }
 
 async function loadSKUsByCategory(categoryId) {
